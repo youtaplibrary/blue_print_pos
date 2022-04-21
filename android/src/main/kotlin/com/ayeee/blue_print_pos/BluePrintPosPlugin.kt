@@ -51,7 +51,7 @@ class BluePrintPosPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 val windowMetrics = activity.windowManager.currentWindowMetrics
                 val insets =
-                    windowMetrics.windowInsets.getInsetsIgnoringVisibility(WindowInsets.Type.systemBars())
+                        windowMetrics.windowInsets.getInsetsIgnoringVisibility(WindowInsets.Type.systemBars())
                 dWidth = windowMetrics.bounds.width() - insets.left - insets.right
                 dHeight = windowMetrics.bounds.height() - insets.bottom - insets.top
             } else {
@@ -89,8 +89,9 @@ class BluePrintPosPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                                     Logger.log("\noffsetHeight : $offsetHeight")
                                     if (offsetWidth != null && offsetWidth.isNotEmpty() && offsetHeight != null && offsetHeight.isNotEmpty()) {
                                         val data = webView.toBitmap(
-                                            offsetWidth.toDouble(),
-                                            offsetHeight.toDouble()
+                                                offsetWidth.toDouble(),
+                                                offsetHeight.toDouble(),
+                                                dWidth,
                                         )
                                         if (data != null) {
                                             val bytes = data.toByteArray()
