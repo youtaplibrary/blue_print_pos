@@ -1,6 +1,9 @@
+## 0.0.16
+- feat(receipt): add spacing using pixels ([#3](https://github.com/iandis/blue_print_pos/pull/3))
+
 ## 0.0.15
 
-- fix(android): fix bitmap size on high density device #1
+- fix(android): fix bitmap size on high density device ([#1](https://github.com/iandis/blue_print_pos/pull/1))
 
 ## 0.0.14
 
