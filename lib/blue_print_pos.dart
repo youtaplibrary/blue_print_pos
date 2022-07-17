@@ -113,7 +113,15 @@ class BluePrintPos {
   /// This method only for print text
   /// value and styling inside model [ReceiptSectionText].
   /// [feedCount] to create more space after printing process done
+  /// 
   /// [useCut] to cut printing process
+  /// 
+  /// [duration] the delay duration before converting the html to bytes.
+  /// defaults to 0.
+  /// 
+  /// [textScaleFactor] the text scale factor (must be > 0 or null).
+  /// note that this currently only works on Android.
+  /// defaults to system's font settings.
   Future<void> printReceiptText(
     ReceiptSectionText receiptSectionText, {
     int feedCount = 0,
@@ -121,10 +129,12 @@ class BluePrintPos {
     bool useRaster = false,
     double duration = 0,
     PaperSize paperSize = PaperSize.mm58,
+    double? textScaleFactor,
   }) async {
     final Uint8List bytes = await contentToImage(
       content: receiptSectionText.content,
       duration: duration,
+      textScaleFactor: textScaleFactor,
     );
     final List<int> byteBuffer = await _getBytes(
       bytes,
@@ -267,13 +277,29 @@ class BluePrintPos {
     }
   }
 
+  /// Converts HTML content to bytes
+  /// 
+  /// [content] the html text
+  /// 
+  /// [duration] the delay duration before converting the html to bytes.
+  /// defaults to 0.
+  /// 
+  /// [textScaleFactor] the text scale factor (must be > 0 or null).
+  /// note that this currently only works on Android.
+  /// defaults to system's font settings.
   static Future<Uint8List> contentToImage({
     required String content,
     double duration = 0,
+    double? textScaleFactor,
   }) async {
+    assert(
+      textScaleFactor == null || textScaleFactor > 0,
+      '`textScaleFactor` must be either null or more than zero.',
+    );
     final Map<String, dynamic> arguments = <String, dynamic>{
       'content': content,
       'duration': Platform.isIOS ? 2000 : duration,
+      'textScaleFactor': textScaleFactor,
     };
     Uint8List results = Uint8List.fromList(<int>[]);
     try {
