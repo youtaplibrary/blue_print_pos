@@ -43,6 +43,8 @@ class BluePrintPosPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         val arguments = call.arguments as Map<*, *>
         val content = arguments["content"] as String
         val duration = arguments["duration"] as Double?
+        val textScaleFactor: Double? = arguments["textScaleFactor"] as? Double?
+        val textZoom: Int? = textScaleFactor?.let { (it * 100).toInt() }
 
         if (call.method == "contentToImage") {
             webView = WebView(this.context)
@@ -67,6 +69,7 @@ class BluePrintPosPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             webView.settings.useWideViewPort = true
             webView.settings.javaScriptCanOpenWindowsAutomatically = true
             webView.settings.loadWithOverviewMode = true
+            webView.settings.textZoom = textZoom ?: webView.settings.textZoom
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 Logger.log("\n=======> enabled scrolled <=========")
                 WebView.enableSlowWholeDocumentDraw()
