@@ -1,3 +1,6 @@
+## 0.0.17
+- feat: adjustable font size on Android ([#5](https://github.com/iandis/blue_print_pos/pull/5))
+
 ## 0.0.16
 - feat(receipt): add spacing using pixels ([#3](https://github.com/iandis/blue_print_pos/pull/3))
 
