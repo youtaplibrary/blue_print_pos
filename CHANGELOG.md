@@ -1,3 +1,6 @@
+## 0.0.18
+- chore: change `qr_flutter` from `pub`-hosted to `github`-hosted ([#7]((https://github.com/iandis/blue_print_pos/pull/7)))
+
 ## 0.0.17
 - feat: adjustable font size on Android ([#5](https://github.com/iandis/blue_print_pos/pull/5))
 
