@@ -1,3 +1,6 @@
+## 0.0.19
+- feat: batch print ([#9](https://github.com/iandis/blue_print_pos/pull/9))
+
 ## 0.0.18
 - chore: change `qr_flutter` from `pub`-hosted to `github`-hosted ([#7]((https://github.com/iandis/blue_print_pos/pull/7)))
 
