@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui';
 
+import 'package:blue_print_pos/models/batch_print_options.dart';
 import 'package:blue_print_pos/models/models.dart';
 import 'package:blue_print_pos/receipt/receipt_section_text.dart';
 import 'package:blue_print_pos/scanner/blue_scanner.dart';
@@ -113,12 +114,12 @@ class BluePrintPos {
   /// This method only for print text
   /// value and styling inside model [ReceiptSectionText].
   /// [feedCount] to create more space after printing process done
-  /// 
+  ///
   /// [useCut] to cut printing process
-  /// 
+  ///
   /// [duration] the delay duration before converting the html to bytes.
   /// defaults to 0.
-  /// 
+  ///
   /// [textScaleFactor] the text scale factor (must be > 0 or null).
   /// note that this currently only works on Android.
   /// defaults to system's font settings.
@@ -130,20 +131,48 @@ class BluePrintPos {
     double duration = 0,
     PaperSize paperSize = PaperSize.mm58,
     double? textScaleFactor,
+    BatchPrintOptions? batchPrintOptions,
   }) async {
-    final Uint8List bytes = await contentToImage(
-      content: receiptSectionText.content,
-      duration: duration,
-      textScaleFactor: textScaleFactor,
-    );
-    final List<int> byteBuffer = await _getBytes(
-      bytes,
-      paperSize: paperSize,
-      feedCount: feedCount,
-      useCut: useCut,
-      useRaster: useRaster,
-    );
-    _printProcess(byteBuffer);
+    final int contentLength = receiptSectionText.contentLength;
+
+    final BatchPrintOptions batchOptions;
+    if (batchPrintOptions != null) {
+      batchOptions = batchPrintOptions;
+    } else {
+      if (Platform.isIOS) {
+        batchOptions = const BatchPrintOptions.perNContent(20);
+      } else {
+        batchOptions = BatchPrintOptions.full;
+      }
+    }
+
+    final Iterable<List<int>> startEndIter =
+        batchOptions.getStartEnd(contentLength);
+
+    for (final List<int> startEnd in startEndIter) {
+      final Uint8List bytes = await contentToImage(
+        content: receiptSectionText.getContent(startEnd[0], startEnd[1]),
+        duration: duration,
+        textScaleFactor: textScaleFactor,
+      );
+      final List<int> byteBuffer = await _getBytes(
+        bytes,
+        paperSize: paperSize,
+        feedCount: feedCount,
+        useCut: useCut,
+        useRaster: useRaster,
+      );
+      await _printProcess(byteBuffer);
+      log(
+        'start: ${startEnd[0]} end: ${startEnd[1]}',
+        name: 'BluePrintPos.printReceiptText',
+      );
+
+      if (batchOptions.delay != Duration.zero &&
+          !batchOptions.delay.isNegative) {
+        await Future<void>.delayed(batchOptions.delay);
+      }
+    }
   }
 
   /// This method only for print image with parameter [bytes] in List<int>
@@ -201,7 +230,7 @@ class BluePrintPos {
         await connect(selectedDevice!);
       }
       if (Platform.isAndroid) {
-        _bluetoothAndroid?.writeBytes(Uint8List.fromList(byteBuffer));
+        await _bluetoothAndroid?.writeBytes(Uint8List.fromList(byteBuffer));
       } else if (Platform.isIOS) {
         final List<flutter_blue.BluetoothService> bluetoothServices =
             await _bluetoothDeviceIOS?.discoverServices() ??
@@ -278,12 +307,12 @@ class BluePrintPos {
   }
 
   /// Converts HTML content to bytes
-  /// 
+  ///
   /// [content] the html text
-  /// 
+  ///
   /// [duration] the delay duration before converting the html to bytes.
   /// defaults to 0.
-  /// 
+  ///
   /// [textScaleFactor] the text scale factor (must be > 0 or null).
   /// note that this currently only works on Android.
   /// defaults to system's font settings.

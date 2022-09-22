@@ -13,12 +13,15 @@ import 'receipt_text_style_type.dart';
 class ReceiptSectionText {
   ReceiptSectionText();
 
-  String _data = '';
+  final List<String> _data = <String>[];
+
+  int get contentLength => _data.length;
 
   /// Build a page from html, [CollectionStyle.all] is defined CSS inside html
   /// [_data] will collect all generated tag from model [ReceiptText],
   /// [ReceiptTextLeftRight] and [ReceiptLine]
-  String get content {
+  String getContent([int start = 0, int? end]) {
+    final String data = _data.sublist(start, end).join();
     return '''
 <!DOCTYPE html>
 <html lang="en">
@@ -35,7 +38,7 @@ ${CollectionStyle.all}
     <div class="container">
       <!-- testing part -->
       
-      $_data
+      $data
       
     </div>
   </div>
@@ -64,7 +67,7 @@ ${CollectionStyle.all}
       ),
       alignment: alignment,
     );
-    _data += receiptText.html;
+    _data.add(receiptText.html);
   }
 
   /// Handler tag of text (span or b) and put inside body html
@@ -92,7 +95,7 @@ ${CollectionStyle.all}
         size: rightSize,
       ),
     );
-    _data += leftRightText.html;
+    _data.add(leftRightText.html);
   }
 
   /// Add new line as empty or dashed line.
@@ -100,12 +103,12 @@ ${CollectionStyle.all}
   /// if [useDashed] true line will print as dashed line
   void addSpacer({int count = 1, bool useDashed = false}) {
     final ReceiptLine line = ReceiptLine(count: count, useDashed: useDashed);
-    _data += line.html;
+    _data.add(line.html);
   }
 
   void addSpacerPx([int pixels = 1]) {
     final ReceiptPixelSpace space = ReceiptPixelSpace(pixels: pixels);
-    _data += space.html;
+    _data.add(space.html);
   }
 
   void addImage(
@@ -118,6 +121,6 @@ ${CollectionStyle.all}
       width: width,
       alignment: alignment,
     );
-    _data += image.html;
+    _data.add(image.html);
   }
 }
