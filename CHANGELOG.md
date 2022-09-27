@@ -1,3 +1,6 @@
+## 0.0.20
+- fix: batch print calculations ([#11](https://github.com/iandis/blue_print_pos/pull/11))
+
 ## 0.0.19
 - feat: batch print ([#9](https://github.com/iandis/blue_print_pos/pull/9))
 
