@@ -11,9 +11,11 @@ import 'receipt_text_style.dart';
 import 'receipt_text_style_type.dart';
 
 class ReceiptSectionText {
-  ReceiptSectionText();
+  ReceiptSectionText() : _data = <String>[];
 
-  final List<String> _data = <String>[];
+  ReceiptSectionText._(this._data);
+
+  final List<String> _data;
 
   int get contentLength => _data.length;
 
@@ -45,6 +47,10 @@ ${CollectionStyle.all}
 </body>
 </html>
     ''';
+  }
+
+  ReceiptSectionText getSection([int start = 0, int? end]) {
+    return ReceiptSectionText._(_data.sublist(start, end));
   }
 
   /// Handler tag of text (p or b) and put inside body html
