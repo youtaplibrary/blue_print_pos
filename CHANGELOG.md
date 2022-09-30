@@ -1,3 +1,6 @@
+## 0.0.21
+- fix: remove receipt vertical padding ([#13](https://github.com/iandis/blue_print_pos/pull/13))
+
 ## 0.0.20
 - fix: batch print calculations ([#11](https://github.com/iandis/blue_print_pos/pull/11))
 
