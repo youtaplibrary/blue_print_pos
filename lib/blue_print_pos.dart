@@ -150,13 +150,36 @@ class BluePrintPos {
         batchOptions.getStartEnd(contentLength);
 
     for (final List<int> startEnd in startEndIter) {
+      final ReceiptSectionText section = receiptSectionText.getSection(
+        startEnd[0],
+        startEnd[1],
+      );
+      // This is to prevent cropped section at the bottom
+      if (Platform.isIOS) {
+        section.addSpacerPx(15);
+      }
       final Uint8List bytes = await contentToImage(
-        content: receiptSectionText.getContent(startEnd[0], startEnd[1]),
+        content: section.getContent(),
         duration: duration,
         textScaleFactor: textScaleFactor,
       );
+      List<int>? croppedExcessTop;
+      // This is to remove the excess top
+      if (Platform.isIOS) {
+        final img.Image? image = img.decodeImage(bytes);
+        if (image != null) {
+          final img.Image cropped = img.copyCrop(
+            image,
+            0,
+            45,
+            image.width,
+            image.height - 45,
+          );
+          croppedExcessTop = img.encodeJpg(cropped);
+        }
+      }
       final List<int> byteBuffer = await _getBytes(
-        bytes,
+        croppedExcessTop ?? bytes,
         paperSize: paperSize,
         feedCount: feedCount,
         useCut: useCut,
