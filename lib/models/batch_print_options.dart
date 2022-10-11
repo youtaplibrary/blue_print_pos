@@ -23,6 +23,10 @@ class BatchPrintOptions {
   final Duration delay;
 
   Iterable<List<int>> getStartEnd(int contentLength) sync* {
+    if (contentLength == 0) {
+      yield const <int>[0, 0];
+      return;
+    }
     final int iterations = _iterations ?? (contentLength / _n!).ceil();
     final int subListLength = _n ?? (contentLength / iterations).ceil();
     int start = 0;

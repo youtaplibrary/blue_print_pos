@@ -23,7 +23,8 @@ class ReceiptSectionText {
   /// [_data] will collect all generated tag from model [ReceiptText],
   /// [ReceiptTextLeftRight] and [ReceiptLine]
   String getContent([int start = 0, int? end]) {
-    final String data = _data.sublist(start, end).join();
+    final String data =
+        _data.isNotEmpty ? _data.sublist(start, end).join() : '';
     return '''
 <!DOCTYPE html>
 <html lang="en">
@@ -50,6 +51,9 @@ ${CollectionStyle.all}
   }
 
   ReceiptSectionText getSection([int start = 0, int? end]) {
+    if (_data.isEmpty) {
+      return ReceiptSectionText();
+    }
     return ReceiptSectionText._(_data.sublist(start, end));
   }
 
