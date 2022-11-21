@@ -1,3 +1,6 @@
+## 0.0.23
+- fix: add `await` to print processes ([#17](https://github.com/iandis/blue_print_pos/pull/17))
+
 ## 0.0.22
 - fix: empty section sublist and calculation ([#15](https://github.com/iandis/blue_print_pos/pull/13))
 
