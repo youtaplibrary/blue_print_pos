@@ -1,5 +1,8 @@
+## 0.1.0
+- **BREAKING CHANGE** refactor: change bluetooth package to use Fluetooth ([#19](https://github.com/iandis/blue_print_pos/pull/19))
+
 ## 0.0.23
-- fix: add `await` to print processes ([#17](https://github.com/iandis/blue_print_pos/pull/17))
+- fix: add `await` to print processes 
 
 ## 0.0.22
 - fix: empty section sublist and calculation ([#15](https://github.com/iandis/blue_print_pos/pull/13))
