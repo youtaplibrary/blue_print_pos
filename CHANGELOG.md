@@ -1,3 +1,6 @@
+## 0.1.1
+- fix: fix bluetooth permission on Android 12 ([#21](https://github.com/iandis/blue_print_pos/pull/21))
+
 ## 0.1.0
 - **BREAKING CHANGE** refactor: change bluetooth package to use Fluetooth ([#19](https://github.com/iandis/blue_print_pos/pull/19))
 
