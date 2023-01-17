@@ -74,12 +74,10 @@ packages:
   fluetooth:
     dependency: "direct main"
     description:
-      path: "."
-      ref: "fix/android-12-bluetooth-permission"
-      resolved-ref: fe6b46adf13d7c8d178a71dbd8f17fc9588b4bed
-      url: "https://github.com/iandis/fluetooth"
-    source: git
-    version: "0.0.3"
+      name: fluetooth
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.0.4"
   flutter:
     dependency: "direct main"
     description: flutter
