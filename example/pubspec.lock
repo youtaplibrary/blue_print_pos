@@ -21,7 +21,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "0.0.23"
+    version: "0.1.0"
   boolean_selector:
     dependency: transitive
     description:
@@ -81,9 +81,11 @@ packages:
   fluetooth:
     dependency: transitive
     description:
-      name: fluetooth
-      url: "https://pub.dartlang.org"
-    source: hosted
+      path: "."
+      ref: "fix/android-12-bluetooth-permission"
+      resolved-ref: fe6b46adf13d7c8d178a71dbd8f17fc9588b4bed
+      url: "https://github.com/iandis/fluetooth"
+    source: git
     version: "0.0.3"
   flutter:
     dependency: "direct main"
@@ -144,6 +146,41 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.8.2"
+  permission_handler:
+    dependency: transitive
+    description:
+      name: permission_handler
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "10.2.0"
+  permission_handler_android:
+    dependency: transitive
+    description:
+      name: permission_handler_android
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "10.2.0"
+  permission_handler_apple:
+    dependency: transitive
+    description:
+      name: permission_handler_apple
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "9.0.7"
+  permission_handler_platform_interface:
+    dependency: transitive
+    description:
+      name: permission_handler_platform_interface
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "3.9.0"
+  permission_handler_windows:
+    dependency: transitive
+    description:
+      name: permission_handler_windows
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.1.2"
   petitparser:
     dependency: transitive
     description:
@@ -151,6 +188,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "4.1.0"
+  plugin_platform_interface:
+    dependency: transitive
+    description:
+      name: plugin_platform_interface
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "2.1.3"
   qr:
     dependency: transitive
     description:
@@ -237,4 +281,4 @@ packages:
     version: "5.1.1"
 sdks:
   dart: ">=2.17.0-0 <3.0.0"
-  flutter: ">=2.2.3"
+  flutter: ">=2.8.0"
