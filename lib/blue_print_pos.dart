@@ -23,6 +23,24 @@ class BluePrintPos {
 
   static const MethodChannel _channel = MethodChannel('blue_print_pos');
 
+  static final PrinterFeatures _printerFeatures = PrinterFeatures();
+
+  /// Register printer device name with its features.
+  /// Example:
+  /// ```dart
+  /// BluePrintPos.addPrinterFeatures(<String, Set<PrinterFeature>>{
+  ///   // The name of the device is from [FluetoothDevice.name]
+  ///   'MY-PRINTER': {PrinterFeature.paperFullCut},
+  /// });
+  /// ```
+  ///
+  /// If [BluePrintPos.selectedDevice] name does not match, for example, for
+  /// [PrinterFeature.paperFullCut], then when printing using `useCut`
+  /// it will not produce any ESC command for paper full cut.
+  static void addPrinterFeatures(PrinterFeatureMap features) {
+    _printerFeatures.featureMap.addAll(features);
+  }
+
   /// State to get bluetooth is connected
   bool _isConnected = false;
 
@@ -81,7 +99,7 @@ class BluePrintPos {
   /// [textScaleFactor] the text scale factor (must be > 0 or null).
   /// note that this currently only works on Android.
   /// defaults to system's font settings.
-  /// 
+  ///
   /// [batchPrintOptions] to print each [ReceiptSectionText]'s content in batch.
   /// defaults to [BatchPrintOptions.full].
   Future<void> printReceiptText(
@@ -211,6 +229,10 @@ class BluePrintPos {
       img.decodeImage(data)!,
       width: customWidth > 0 ? customWidth : paperSize.width,
     );
+    final bool canFullCut = _printerFeatures.hasFeatureOf(
+      _selectedDevice!.name,
+      PrinterFeature.paperFullCut,
+    );
     if (useRaster) {
       bytes += generator.imageRaster(_resize);
     } else {
@@ -219,7 +241,7 @@ class BluePrintPos {
     if (feedCount > 0) {
       bytes += generator.feed(feedCount);
     }
-    if (useCut) {
+    if (useCut && canFullCut) {
       bytes += generator.cut();
     }
     return bytes;
