@@ -1,3 +1,6 @@
+## 0.1.2
+- feat: add printer feature ([#23](https://github.com/iandis/blue_print_pos/pull/23))
+
 ## 0.1.1
 - fix: fix bluetooth permission on Android 12 ([#21](https://github.com/iandis/blue_print_pos/pull/21))
 
