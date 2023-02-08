@@ -1,5 +1,9 @@
+## 0.1.4
+- refactor: add printer feature rule
+- refactor(android): destroy webview on done
+
 ## 0.1.3
-- chore: bump fluetooth to 0.0.5 ([#25](https://github.com/iandis/blue_print_pos/pull/23)) 
+- chore: bump fluetooth to 0.0.5 ([#25](https://github.com/iandis/blue_print_pos/pull/25)) 
 
 ## 0.1.2
 - feat: add printer feature ([#23](https://github.com/iandis/blue_print_pos/pull/23))
