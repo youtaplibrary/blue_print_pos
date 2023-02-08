@@ -1,13 +1,20 @@
-typedef PrinterFeatureMap = Map<String, Set<PrinterFeature>>;
+import 'package:blue_print_pos/models/printer_feature_rule.dart';
+
+typedef PrinterFeatureMap = Map<PrinterFeatureRule, Set<PrinterFeature>>;
 
 enum PrinterFeature {
   paperFullCut,
 }
 
 class PrinterFeatures {
-  final PrinterFeatureMap featureMap = <String, Set<PrinterFeature>>{};
+  final PrinterFeatureMap featureMap =
+      <PrinterFeatureRule, Set<PrinterFeature>>{};
 
   bool hasFeatureOf(String printerName, PrinterFeature feature) {
-    return featureMap[printerName]?.contains(feature) == true;
+    const PrinterFeatureRule allowAllRule = PrinterFeatureRule.allowAll;
+    final PrinterFeatureRule allowRule =
+        PrinterFeatureRule.allowFor(printerName);
+    return featureMap[allowAllRule]?.contains(feature) == true ||
+        featureMap[allowRule]?.contains(feature) == true;
   }
 }

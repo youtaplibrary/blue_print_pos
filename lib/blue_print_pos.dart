@@ -30,7 +30,11 @@ class BluePrintPos {
   /// ```dart
   /// BluePrintPos.addPrinterFeatures(<String, Set<PrinterFeature>>{
   ///   // The name of the device is from [FluetoothDevice.name]
-  ///   'MY-PRINTER': {PrinterFeature.paperFullCut},
+  ///   const PrinterFeatureRule.allowFor('PRJ-80AT-BT'): {
+  //      PrinterFeature.paperFullCut,
+  //    },
+  ///   // Allow all printers for this feature
+  ///   PrinterFeatureRule.allowAll: {PrinterFeature.paperFullCut},
   /// });
   /// ```
   ///
@@ -39,6 +43,14 @@ class BluePrintPos {
   /// it will not produce any ESC command for paper full cut.
   static void addPrinterFeatures(PrinterFeatureMap features) {
     _printerFeatures.featureMap.addAll(features);
+  }
+
+  /// Check if the printer has the feature.
+  ///
+  /// This will return `true` if [feature] is allowed for the printer or
+  /// if [feature] is allowed for all printers.
+  static bool printerHasFeatureOf(String printerName, PrinterFeature feature) {
+    return _printerFeatures.hasFeatureOf(printerName, feature);
   }
 
   /// State to get bluetooth is connected
@@ -229,7 +241,7 @@ class BluePrintPos {
       img.decodeImage(data)!,
       width: customWidth > 0 ? customWidth : paperSize.width,
     );
-    final bool canFullCut = _printerFeatures.hasFeatureOf(
+    final bool canFullCut = printerHasFeatureOf(
       _selectedDevice!.name,
       PrinterFeature.paperFullCut,
     );
