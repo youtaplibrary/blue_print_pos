@@ -105,10 +105,6 @@ class BluePrintPosPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             override fun onPageFinished(view: WebView, url: String) {
                 super.onPageFinished(view, url)
 
-                fun destroyWebView() {
-                    webView.destroy()
-                }
-
                 Handler(Looper.getMainLooper()).postDelayed({
                     Logger.log("\n ================ webview completed ==============")
                     Logger.log("\n scroll delayed ${webView.scrollBarFadeDuration}")
@@ -123,7 +119,6 @@ class BluePrintPosPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                                     "Failed to convert content to image",
                                     null
                                 )
-                                destroyWebView()
                                 return@evaluateJavascript
                             }
 
@@ -144,7 +139,6 @@ class BluePrintPosPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                                 Logger.log("\n Got snapshot")
                             }
 
-                            destroyWebView()
                         }
                     }
 
