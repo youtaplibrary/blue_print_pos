@@ -118,6 +118,7 @@ class BluePrintPos {
     int feedCount = 0,
     bool useCut = false,
     bool useRaster = false,
+    bool openDrawer = false,
     double duration = 0,
     PaperSize paperSize = PaperSize.mm58,
     double? textScaleFactor,
@@ -146,6 +147,7 @@ class BluePrintPos {
         feedCount: isEndOfBatch ? feedCount : batchOptions.feedCount,
         useCut: isEndOfBatch ? useCut : batchOptions.useCut,
         useRaster: useRaster,
+        openDrawer: openDrawer,
       );
       await _printProcess(byteBuffer);
       log(
@@ -169,6 +171,7 @@ class BluePrintPos {
     int feedCount = 0,
     bool useCut = false,
     bool useRaster = false,
+    bool openDrawer = false,
     PaperSize paperSize = PaperSize.mm58,
   }) async {
     final List<int> byteBuffer = await _getBytes(
@@ -178,6 +181,7 @@ class BluePrintPos {
       useCut: useCut,
       useRaster: useRaster,
       paperSize: paperSize,
+      openDrawer: openDrawer,
     );
     await _printProcess(byteBuffer);
   }
@@ -191,14 +195,14 @@ class BluePrintPos {
     int size = 120,
     int feedCount = 0,
     bool useCut = false,
+    bool openDrawer = false,
   }) async {
     final List<int> byteBuffer = await _getQRImage(data, size.toDouble());
-    await printReceiptImage(
-      byteBuffer,
-      width: size,
-      feedCount: feedCount,
-      useCut: useCut,
-    );
+    await printReceiptImage(byteBuffer,
+        width: size,
+        feedCount: feedCount,
+        useCut: useCut,
+        openDrawer: openDrawer);
   }
 
   /// Reusable method for print text, image or QR based value [byteBuffer]
@@ -229,6 +233,7 @@ class BluePrintPos {
     int feedCount = 0,
     bool useCut = false,
     bool useRaster = false,
+    bool openDrawer = false,
   }) async {
     List<int> bytes = <int>[];
     final CapabilityProfile profile = await CapabilityProfile.load();
@@ -241,6 +246,9 @@ class BluePrintPos {
       _selectedDevice!.name,
       PrinterFeature.paperFullCut,
     );
+    if (openDrawer) {
+      bytes += generator.drawer();
+    }
     if (useRaster) {
       bytes += generator.imageRaster(_resize);
     } else {
