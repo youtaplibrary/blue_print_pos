@@ -1,9 +1,6 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:blue_print_pos/blue_print_pos.dart';
-import 'package:blue_print_pos/models/models.dart';
-import 'package:blue_print_pos/receipt/receipt.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -22,7 +19,6 @@ class _MyAppState extends State<MyApp> {
   FluetoothDevice? _selectedDevice;
   bool _isLoading = false;
   int _loadingAtIndex = -1;
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -102,7 +98,7 @@ class _MyAppState extends State<MyApp> {
                                       _blueDevices[index].id ==
                                           (_selectedDevice?.id ?? ''))
                                     TextButton(
-                                      onPressed: _onPrintReceipt,
+                                      onPressed: _onPrintFormattedText,
                                       child: Container(
                                         color: _selectedDevice == null
                                             ? Colors.grey
@@ -202,6 +198,46 @@ class _MyAppState extends State<MyApp> {
       }
       setState(() => _isLoading = false);
     });
+  }
+
+  Future<String?> _convertImageToString(String path) async {
+    final ByteData logoByteData = await rootBundle.load(path);
+    final String youtapLogoBase64 =
+        base64.encode(logoByteData.buffer.asUint8List());
+    final String? result =
+        await _bluePrintPos.convertImageToString(youtapLogoBase64);
+
+    return result;
+  }
+
+  Future<void> _onPrintFormattedText() async {
+    final String? imageFooter =
+        await _convertImageToString('assets/main_logo_black.jpg');
+
+    final StringBuffer receiptText = StringBuffer()
+      ..write('[C]<font size="big">Joko</font>\n')
+      ..write('[L]No. Order[R]1\n')
+      ..write('[C]--------------------------------\n')
+      ..write('[L]Waktu[R]16:09, 30/08/23\n')
+      ..write('[C]--------------------------------')
+      ..write('[L]Cold Ocha[R]Rp15.000\n')
+      ..write('[L]1 x Rp15.000\n')
+      ..write('[L]\n')
+      ..write('[L]Soft Mango Pudding[R]Rp20.000\n')
+      ..write('[L]1 x Rp20.000\n')
+      ..write('[C]--------------------------------\n')
+      ..write('[L]Subtotal[R]Rp35.000\n')
+      ..write('[C]--------------------------------\n')
+      ..write('[L]<b>Total[R]Rp35.000</b>\n')
+      ..write('[C]--------------------------------\n')
+      ..write('[L]\n')
+      ..write('[C]Powered by youtap.id\n');
+
+    if (imageFooter != null) {
+      receiptText.write('[C]<img>$imageFooter</img>\n');
+    }
+
+    await _bluePrintPos.printFormattedText(receiptText.toString());
   }
 
   Future<void> _onPrintReceipt() async {

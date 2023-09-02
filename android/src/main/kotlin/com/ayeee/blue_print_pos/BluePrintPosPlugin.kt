@@ -4,16 +4,22 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.util.Base64
+import android.util.Log
 import android.view.WindowInsets
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.annotation.NonNull
-import androidx.annotation.RequiresApi
+import com.ayeee.blue_print_pos.async.AsyncBluetoothEscPosPrint
+import com.ayeee.blue_print_pos.async.AsyncEscPosPrint
+import com.ayeee.blue_print_pos.async.AsyncEscPosPrinter
+import com.ayeee.blue_print_pos.connection.DeviceConnection
 import com.ayeee.blue_print_pos.extension.toBitmap
 import com.ayeee.blue_print_pos.extension.toByteArray
+import com.ayeee.blue_print_pos.textparser.PrinterTextParserImg
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -31,8 +37,40 @@ class BluePrintPosPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private lateinit var channel: MethodChannel
     private lateinit var activity: Activity
     private lateinit var context: Context
+    private var selectedDevice = DeviceConnection()
+    private var printer: AsyncEscPosPrinter? = null
 
-    override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+    private fun parseTextToBytes(printerData: String, result: Result) {
+        printer = AsyncEscPosPrinter(selectedDevice, 203, 48f, 32)
+        AsyncBluetoothEscPosPrint(
+            context,
+            object : AsyncEscPosPrint.OnPrintFinished() {
+                override fun onError(asyncEscPosPrinter: AsyncEscPosPrinter?, codeException: Int) {
+                    Log.e("Async.OnPrintFinished", "AsyncEscPosPrint.OnPrintFinished : An error occurred !")
+                    printer!!.setTextsToPrint(arrayOfNulls(0))
+                }
+
+                override fun onSuccess(asyncEscPosPrinter: AsyncEscPosPrinter?) {
+                    Log.i("Async.OnPrintFinished", "AsyncEscPosPrint.OnPrintFinished : Print is finished !")
+                    result.success(printer!!.printerConnection.bytes)
+                    printer!!.setTextsToPrint(arrayOfNulls(0))
+                    printer!!.printerConnection.bytes = ByteArray(0)
+                }
+            }
+        )
+            .execute(this.getAsyncEscPosPrinter(selectedDevice,printerData))
+
+    }
+
+    @SuppressLint("SimpleDateFormat")
+    fun getAsyncEscPosPrinter(printerConnection: DeviceConnection?, printerData: String): AsyncEscPosPrinter? {
+        if ( printerConnection == null || printer == null) {
+            return null
+        }
+        return printer!!.addTextToPrint(printerData)
+    }
+
+    override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         val viewID = "webview-view-type"
         flutterPluginBinding.platformViewRegistry.registerViewFactory(viewID, FLNativeViewFactory())
 
@@ -41,31 +79,46 @@ class BluePrintPosPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         context = flutterPluginBinding.applicationContext
     }
 
-    override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
+    override fun onMethodCall(call: MethodCall, result: Result) {
         val arguments = call.arguments as Map<*, *>
         val content = arguments["content"] as String
         val duration = arguments["duration"] as Double?
         val textScaleFactor: Double? = arguments["textScaleFactor"] as? Double?
         val textZoom: Int? = textScaleFactor?.let { (it * 100).toInt() }
 
-        if (call.method == "contentToImage") {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
-                result.error(
-                    "FAILED_CONTENT_TO_IMAGE",
-                    "Unsupported Android version",
-                    null
-                )
-                return
+        when (call.method) {
+            "contentToImage" -> {
+                contentToImage(content, textZoom, result, duration)
             }
-            _contentToImage(content, textZoom, result, duration)
-        } else {
-            result.notImplemented()
+            "convertImageToHexadecimal" -> {
+                val imageDataBase64 = (call.arguments as? Map<*, *>)?.get("content") as? String
+                if (imageDataBase64.isNullOrEmpty()) {
+                    result.error(
+                        "400",
+                        "Please supply this bytesToHexadecimalString method with a string to convert",
+                        null,
+                    )
+                } else {
+                    printer = AsyncEscPosPrinter(selectedDevice, 203, 48f, 32)
+                    val bytes = Base64.decode(imageDataBase64,Base64.DEFAULT)
+                    val bitmap = BitmapFactory.decodeByteArray(bytes,0,bytes.size)
+                    val hexadecimal = PrinterTextParserImg.bitmapToHexadecimalString(printer,bitmap)
+                    result.success(hexadecimal)
+                }
+            }
+            "parseTextToBytes" -> {
+                Log.i("Content", content)
+                parseTextToBytes(content,result)
+
+            } else -> {
+                result.notImplemented()
+            }
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.KITKAT)
+    @Suppress("DEPRECATION")
     @SuppressLint("SetJavaScriptEnabled")
-    private fun _contentToImage(
+    private fun contentToImage(
         content: String,
         textZoom: Int?,
         result: Result,
@@ -178,7 +231,7 @@ class BluePrintPosPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         Logger.log("onDetachedFromActivity")
     }
 
-    override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
+    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         channel.setMethodCallHandler(null)
     }
 }
