@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
 import 'dart:ui';
@@ -165,6 +166,18 @@ class BluePrintPos {
     }
   }
 
+  Future<void> printFormattedText(String content) async {
+    final Uint8List? bytes = await getBytesFromText(content: content);
+    if (bytes != null) {
+      await _printProcess(bytes);
+    }
+  }
+
+  Future<String?> convertImageToString(String image) async {
+    final String? result = await getImageHexadecimal(content: image);
+    return result;
+  }
+
   /// This method only for print image with parameter [bytes] in List<int>
   /// define [width] to custom width of image, default value is 120
   /// [feedCount] to create more space after printing process done
@@ -318,6 +331,43 @@ class BluePrintPos {
           Uint8List.fromList(<int>[]);
     } on Exception catch (e) {
       log('[method:contentToImage]: $e');
+      throw Exception('Error: $e');
+    }
+    return results;
+  }
+
+  static Future<Uint8List?> getBytesFromText({
+    required String content,
+  }) async {
+    final Map<String, dynamic> arguments = <String, dynamic>{
+      'content': content,
+    };
+    Uint8List? results = Uint8List.fromList(<int>[]);
+    try {
+      results =
+          await _channel.invokeMethod<Uint8List>('parseTextToBytes', arguments);
+      if (results != null) {
+        return results;
+      }
+    } on Exception catch (e) {
+      log('[method:parseTextToBytes]: $e');
+      throw Exception('Error: $e');
+    }
+    return null;
+  }
+
+  static Future<String?> getImageHexadecimal({
+    required String content,
+  }) async {
+    final Map<String, dynamic> arguments = <String, dynamic>{
+      'content': content,
+    };
+    String? results;
+    try {
+      results = await _channel.invokeMethod<String>(
+          'convertImageToHexadecimal', arguments);
+    } on Exception catch (e) {
+      log('[method:parserTextToBytes]: $e');
       throw Exception('Error: $e');
     }
     return results;
