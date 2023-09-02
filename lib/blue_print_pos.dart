@@ -4,7 +4,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:blue_print_pos/models/models.dart';
-import 'package:blue_print_pos/receipt/receipt_section_text.dart';
+import 'package:blue_print_pos/new/receipt/receipt_section_text.dart';
 import 'package:esc_pos_utils_plus/esc_pos_utils.dart';
 import 'package:fluetooth/fluetooth.dart';
 import 'package:flutter/services.dart';
@@ -15,7 +15,7 @@ export 'package:esc_pos_utils_plus/esc_pos_utils.dart' show PaperSize;
 export 'package:fluetooth/fluetooth.dart' show FluetoothDevice;
 
 export 'models/models.dart';
-export 'receipt/receipt.dart';
+export 'new/receipt/receipt.dart';
 
 class BluePrintPos {
   static final BluePrintPos _instance = BluePrintPos();
@@ -164,10 +164,48 @@ class BluePrintPos {
     }
   }
 
-  Future<void> printFormattedText(String content) async {
-    final Uint8List? bytes = await getBytesFromText(content: content);
-    if (bytes != null) {
-      await _printProcess(bytes);
+  Future<void> printReceiptTextEscPos(
+    ReceiptSectionText receiptSectionText, {
+    int feedCount = 0,
+    bool useCut = false,
+    bool useRaster = false,
+    double duration = 0,
+    PaperSize paperSize = PaperSize.mm58,
+    double? textScaleFactor,
+    BatchPrintOptions? batchPrintOptions,
+  }) async {
+    log(receiptSectionText.getContent());
+
+    final int contentLength = receiptSectionText.contentLength;
+
+    final BatchPrintOptions batchOptions =
+        batchPrintOptions ?? BatchPrintOptions.full;
+
+    final Iterable<List<Object>> startEndIter =
+        batchOptions.getStartEnd(contentLength);
+
+    for (final List<Object> startEnd in startEndIter) {
+      final ReceiptSectionText section = receiptSectionText.getSection(
+        startEnd[0] as int,
+        startEnd[1] as int,
+      );
+
+      final bool isEndOfBatch = startEnd[2] as bool;
+      final Uint8List? bytes =
+          await convertTextToBytes(content: section.getContent());
+
+      if (bytes == null) {
+        return;
+      }
+
+      final List<int> byteBuffer = await _getBytesFromEscPos(
+        List<int>.from(bytes),
+        paperSize: paperSize,
+        feedCount: isEndOfBatch ? feedCount : batchOptions.feedCount,
+        useCut: isEndOfBatch ? useCut : batchOptions.useCut,
+      );
+
+      await _printProcess(byteBuffer);
     }
   }
 
@@ -218,6 +256,25 @@ class BluePrintPos {
     );
   }
 
+  /// This method only for print QR, only pass value on parameter [data]
+  /// define [size] to size of QR, default value is 120
+  /// [feedCount] to create more space after printing process done
+  /// [useCut] to cut printing process
+  Future<void> printQREscPos(
+    String data, {
+    int size = 120,
+    int feedCount = 0,
+    bool useCut = false,
+  }) async {
+    final String content = "[C]<qrcode size='20'>$data</qrcode>";
+    final Uint8List? byteBuffer = await convertTextToBytes(content: content);
+    if (byteBuffer == null) {
+      return;
+    }
+
+    await _printProcess(byteBuffer);
+  }
+
   /// Reusable method for print text, image or QR based value [byteBuffer]
   /// Handler Android or iOS will use method writeBytes from ByteBuffer
   /// But in iOS more complex handler using service and characteristic
@@ -263,6 +320,35 @@ class BluePrintPos {
     } else {
       bytes += generator.image(_resize);
     }
+    if (feedCount > 0) {
+      bytes += generator.feed(feedCount);
+    }
+    if (useCut && canFullCut) {
+      bytes += generator.cut();
+    }
+    return bytes;
+  }
+
+  /// This method to convert byte from [data] into as image canvas.
+  /// It will automatically set width and height based [paperSize].
+  /// [customWidth] to print image with specific width
+  /// [feedCount] to generate byte buffer as feed in receipt.
+  /// [useCut] to cut of receipt layout as byte buffer.
+  Future<List<int>> _getBytesFromEscPos(
+    List<int> data, {
+    PaperSize paperSize = PaperSize.mm58,
+    int feedCount = 0,
+    bool useCut = false,
+  }) async {
+    List<int> bytes = data;
+    final CapabilityProfile profile = await CapabilityProfile.load();
+    final Generator generator = Generator(paperSize, profile);
+
+    final bool canFullCut = printerHasFeatureOf(
+      _selectedDevice!.name,
+      PrinterFeature.paperFullCut,
+    );
+
     if (feedCount > 0) {
       bytes += generator.feed(feedCount);
     }
@@ -328,7 +414,7 @@ class BluePrintPos {
     return results;
   }
 
-  static Future<Uint8List?> getBytesFromText({
+  static Future<Uint8List?> convertTextToBytes({
     required String content,
   }) async {
     final Map<String, dynamic> arguments = <String, dynamic>{
