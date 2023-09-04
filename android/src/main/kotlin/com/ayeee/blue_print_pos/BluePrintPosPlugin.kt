@@ -27,6 +27,7 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
+import kotlin.math.roundToInt
 
 /** BluePrintPosPlugin */
 class BluePrintPosPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
@@ -92,6 +93,7 @@ class BluePrintPosPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             }
             "convertImageToHexadecimal" -> {
                 val imageDataBase64 = (call.arguments as? Map<*, *>)?.get("content") as? String
+                val targetWidth = (call.arguments as? Map<*, *>)?.get("width") as? Int
                 if (imageDataBase64.isNullOrEmpty()) {
                     result.error(
                         "400",
@@ -101,8 +103,22 @@ class BluePrintPosPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 } else {
                     printer = AsyncEscPosPrinter(selectedDevice, 203, 48f, 32)
                     val bytes = Base64.decode(imageDataBase64,Base64.DEFAULT)
-                    val bitmap = BitmapFactory.decodeByteArray(bytes,0,bytes.size)
-                    val hexadecimal = PrinterTextParserImg.bitmapToHexadecimalString(printer,bitmap)
+                    val originalBitmap = BitmapFactory.decodeByteArray(bytes,0,bytes.size)
+                    val originalHeight = originalBitmap.height
+                    val originalWidth = originalBitmap.width
+
+                    val hexadecimal: String? = if (targetWidth != null) {
+                        val rescaleBitmap = Bitmap.createScaledBitmap(
+                            originalBitmap,
+                            targetWidth,
+                            (originalHeight.toDouble().roundToInt() * targetWidth / (originalWidth)),
+                            true
+                        )
+
+                        PrinterTextParserImg.bitmapToHexadecimalString(printer,rescaleBitmap)
+                    } else {
+                        PrinterTextParserImg.bitmapToHexadecimalString(printer, originalBitmap)
+                    }
                     result.success(hexadecimal)
                 }
             }
