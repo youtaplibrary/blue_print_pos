@@ -19,6 +19,7 @@ class _MyAppState extends State<MyApp> {
   FluetoothDevice? _selectedDevice;
   bool _isLoading = false;
   int _loadingAtIndex = -1;
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -200,58 +201,18 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  Future<String?> _convertImageToString(String path) async {
-    final ByteData logoByteData = await rootBundle.load(path);
-    final String youtapLogoBase64 =
-        base64.encode(logoByteData.buffer.asUint8List());
-    final String? result =
-        await _bluePrintPos.convertImageToString(youtapLogoBase64);
-
-    return result;
-  }
-
-  // Future<void> _onPrintFormattedText() async {
-  //   final String? imageFooter =
-  //       await _convertImageToString('assets/main_logo_black.jpg');
-  //
-  //   final StringBuffer receiptText = StringBuffer()
-  //     ..write('[C]<font size="big">Joko</font>\n')
-  //     ..write('[L]No. Order[R]1\n')
-  //     ..write('[C]--------------------------------\n')
-  //     ..write('[L]Waktu[R]16:09, 30/08/23\n')
-  //     ..write('[C]--------------------------------')
-  //     ..write('[L]Cold Ocha[R]Rp15.000\n')
-  //     ..write('[L]1 x Rp15.000\n')
-  //     ..write('[L]\n')
-  //     ..write('[L]Soft Mango Pudding[R]Rp20.000\n')
-  //     ..write('[L]1 x Rp20.000\n')
-  //     ..write('[C]--------------------------------\n')
-  //     ..write('[L]Subtotal[R]Rp35.000\n')
-  //     ..write('[C]--------------------------------\n')
-  //     ..write('[L]<b>Total[R]Rp35.000</b>\n')
-  //     ..write('[C]--------------------------------\n')
-  //     ..write('[L]\n')
-  //     ..write('[C]Powered by youtap.id\n');
-  //
-  //   if (imageFooter != null) {
-  //     receiptText.write('[C]<img>$imageFooter</img>\n');
-  //   }
-  //
-  //   await _bluePrintPos.printFormattedText(receiptText.);
-  // }
-
   Future<void> _onPrintReceipt() async {
-    final String? logoBase64 = await _convertImageToString('assets/logo.jpg');
+    /// Example for Print Image
+    final ByteData logoBytes = await rootBundle.load(
+      'assets/logo.jpg',
+    );
 
     /// Example for Print Text
     final ReceiptSectionText receiptText = ReceiptSectionText();
-
-    if (logoBase64 != null) {
-      receiptText.addImage(
-        logoBase64,
-        width: 150,
-      );
-    }
+    receiptText.addImage(
+      base64.encode(Uint8List.view(logoBytes.buffer)),
+      width: 150,
+    );
     receiptText.addSpacer();
     receiptText.addText(
       'MY STORE',
@@ -287,16 +248,16 @@ class _MyAppState extends State<MyApp> {
     );
     receiptText.addSpacer(count: 2);
 
-    await _bluePrintPos.printReceiptTextEscPos(receiptText);
+    await _bluePrintPos.printReceiptText(receiptText);
 
     /// Example for print QR
-    await _bluePrintPos.printQREscPos('www.google.com', size: 250);
+    await _bluePrintPos.printQR('www.google.com', size: 250);
 
     /// Text after QR
     final ReceiptSectionText receiptSecondText = ReceiptSectionText();
     receiptSecondText.addText('Powered by ayeee',
         size: ReceiptTextSizeType.small);
     receiptSecondText.addSpacer();
-    await _bluePrintPos.printReceiptTextEscPos(receiptSecondText);
+    await _bluePrintPos.printReceiptText(receiptSecondText, feedCount: 1);
   }
 }
