@@ -1,13 +1,12 @@
+import 'package:blue_print_pos/blue_print_pos_new.dart';
+
 import 'collection_style.dart';
-import 'receipt_alignment.dart';
 import 'receipt_image.dart';
 import 'receipt_line.dart';
 import 'receipt_pixel_space.dart';
 import 'receipt_text.dart';
 import 'receipt_text_left_right.dart';
-import 'receipt_text_size_type.dart';
 import 'receipt_text_style.dart';
-import 'receipt_text_style_type.dart';
 
 class ReceiptSectionText {
   ReceiptSectionText() : _data = <String>[];
@@ -109,5 +108,12 @@ class ReceiptSectionText {
       alignment: alignment,
     );
     _data.add(image.html);
+  }
+
+  void addQR(String data, {int size = 20}) {
+    final ReceiptQR qr = ReceiptQR(
+      data,
+    );
+    _data.add(qr.html);
   }
 }

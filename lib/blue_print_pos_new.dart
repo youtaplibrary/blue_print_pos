@@ -1,20 +1,18 @@
+import 'dart:async';
 import 'dart:developer';
-import 'dart:io';
-import 'dart:ui';
 
 import 'package:blue_print_pos/models/models.dart';
-import 'package:blue_print_pos/receipt/receipt_section_text.dart';
+import 'package:blue_print_pos/new/receipt/receipt.dart';
 import 'package:esc_pos_utils_plus/esc_pos_utils.dart';
 import 'package:fluetooth/fluetooth.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
-import 'package:qr_flutter/qr_flutter.dart';
 
 export 'package:esc_pos_utils_plus/esc_pos_utils.dart' show PaperSize;
 export 'package:fluetooth/fluetooth.dart' show FluetoothDevice;
 
 export 'models/models.dart';
-export 'receipt/receipt.dart';
+export 'new/receipt/receipt.dart';
 
 class BluePrintPos {
   static final BluePrintPos _instance = BluePrintPos();
@@ -99,21 +97,6 @@ class BluePrintPos {
     return ConnectionStatus.disconnect;
   }
 
-  /// This method only for print text
-  /// value and styling inside model [ReceiptSectionText].
-  /// [feedCount] to create more space after printing process done
-  ///
-  /// [useCut] to cut printing process
-  ///
-  /// [duration] the delay duration before converting the html to bytes.
-  /// defaults to 0.
-  ///
-  /// [textScaleFactor] the text scale factor (must be > 0 or null).
-  /// note that this currently only works on Android.
-  /// defaults to system's font settings.
-  ///
-  /// [batchPrintOptions] to print each [ReceiptSectionText]'s content in batch.
-  /// defaults to [BatchPrintOptions.full].
   Future<void> printReceiptText(
     ReceiptSectionText receiptSectionText, {
     int feedCount = 0,
@@ -124,6 +107,8 @@ class BluePrintPos {
     double? textScaleFactor,
     BatchPrintOptions? batchPrintOptions,
   }) async {
+    log(receiptSectionText.getContent());
+
     final int contentLength = receiptSectionText.contentLength;
 
     final BatchPrintOptions batchOptions =
@@ -137,30 +122,32 @@ class BluePrintPos {
         startEnd[0] as int,
         startEnd[1] as int,
       );
+
       final bool isEndOfBatch = startEnd[2] as bool;
-      final Uint8List bytes = await contentToImage(
-        content: section.getContent(),
-        duration: duration,
-        textScaleFactor: textScaleFactor,
-      );
-      final List<int> byteBuffer = await _getBytes(
-        bytes,
+      final Uint8List? bytes =
+          await convertTextToBytes(content: section.getContent());
+
+      if (bytes == null) {
+        return;
+      }
+
+      final List<int> byteBuffer = await _getBytesFromEscPos(
+        List<int>.from(bytes),
         paperSize: paperSize,
         feedCount: isEndOfBatch ? feedCount : batchOptions.feedCount,
         useCut: isEndOfBatch ? useCut : batchOptions.useCut,
-        useRaster: useRaster,
-      );
-      await _printProcess(byteBuffer);
-      log(
-        'start: ${startEnd[0]} end: ${startEnd[1]}',
-        name: 'BluePrintPos.printReceiptText',
       );
 
-      if (batchOptions.delay != Duration.zero &&
-          !batchOptions.delay.isNegative) {
-        await Future<void>.delayed(batchOptions.delay);
-      }
+      await _printProcess(byteBuffer);
     }
+  }
+
+  Future<String?> convertImageToString(String image, {int? width}) async {
+    final String? result = await getImageHexadecimal(
+      content: image,
+      width: width,
+    );
+    return result;
   }
 
   /// This method only for print image with parameter [bytes] in List<int>
@@ -196,13 +183,13 @@ class BluePrintPos {
     int feedCount = 0,
     bool useCut = false,
   }) async {
-    final List<int> byteBuffer = await _getQRImage(data, size.toDouble());
-    await printReceiptImage(
-      byteBuffer,
-      width: size,
-      feedCount: feedCount,
-      useCut: useCut,
-    );
+    final String content = "[C]<qrcode size='20'>$data</qrcode>";
+    final Uint8List? byteBuffer = await convertTextToBytes(content: content);
+    if (byteBuffer == null) {
+      return;
+    }
+
+    await _printProcess(byteBuffer);
   }
 
   /// Reusable method for print text, image or QR based value [byteBuffer]
@@ -259,57 +246,69 @@ class BluePrintPos {
     return bytes;
   }
 
-  /// Handler to generate QR image from [text] and set the [size].
-  /// Using painter and convert to [Image] object and return as [Uint8List]
-  Future<Uint8List> _getQRImage(String text, double size) async {
-    try {
-      final Image image = await QrPainter(
-        data: text,
-        version: QrVersions.auto,
-        gapless: false,
-        color: const Color(0xFF000000),
-        emptyColor: const Color(0xFFFFFFFF),
-      ).toImage(size);
-      final ByteData? byteData =
-          await image.toByteData(format: ImageByteFormat.png);
-      assert(byteData != null);
-      return byteData!.buffer.asUint8List();
-    } on Exception catch (exception) {
-      print('$runtimeType - $exception');
-      rethrow;
+  /// This method to convert byte from [data] into as image canvas.
+  /// It will automatically set width and height based [paperSize].
+  /// [customWidth] to print image with specific width
+  /// [feedCount] to generate byte buffer as feed in receipt.
+  /// [useCut] to cut of receipt layout as byte buffer.
+  Future<List<int>> _getBytesFromEscPos(
+    List<int> data, {
+    PaperSize paperSize = PaperSize.mm58,
+    int feedCount = 0,
+    bool useCut = false,
+  }) async {
+    List<int> bytes = data;
+    final CapabilityProfile profile = await CapabilityProfile.load();
+    final Generator generator = Generator(paperSize, profile);
+
+    final bool canFullCut = printerHasFeatureOf(
+      _selectedDevice!.name,
+      PrinterFeature.paperFullCut,
+    );
+
+    if (feedCount > 0) {
+      bytes += generator.feed(feedCount);
     }
+    if (useCut && canFullCut) {
+      bytes += generator.cut();
+    }
+    return bytes;
   }
 
-  /// Converts HTML content to bytes
-  ///
-  /// [content] the html text
-  ///
-  /// [duration] the delay duration before converting the html to bytes.
-  /// defaults to 0.
-  ///
-  /// [textScaleFactor] the text scale factor (must be > 0 or null).
-  /// note that this currently only works on Android.
-  /// defaults to system's font settings.
-  static Future<Uint8List> contentToImage({
+  static Future<Uint8List?> convertTextToBytes({
     required String content,
-    double duration = 0,
-    double? textScaleFactor,
   }) async {
-    assert(
-      textScaleFactor == null || textScaleFactor > 0,
-      '`textScaleFactor` must be either null or more than zero.',
-    );
     final Map<String, dynamic> arguments = <String, dynamic>{
       'content': content,
-      'duration': Platform.isIOS ? 2000 : duration,
-      'textScaleFactor': textScaleFactor,
     };
-    Uint8List results = Uint8List.fromList(<int>[]);
+    Uint8List? results = Uint8List.fromList(<int>[]);
     try {
-      results = await _channel.invokeMethod('contentToImage', arguments) ??
-          Uint8List.fromList(<int>[]);
+      results =
+          await _channel.invokeMethod<Uint8List>('parseTextToBytes', arguments);
+      if (results != null) {
+        return results;
+      }
     } on Exception catch (e) {
-      log('[method:contentToImage]: $e');
+      log('[method:parseTextToBytes]: $e');
+      throw Exception('Error: $e');
+    }
+    return null;
+  }
+
+  static Future<String?> getImageHexadecimal({
+    required String content,
+    int? width,
+  }) async {
+    final Map<String, dynamic> arguments = <String, dynamic>{
+      'content': content,
+      'width': width,
+    };
+    String? results;
+    try {
+      results = await _channel.invokeMethod<String>(
+          'convertImageToHexadecimal', arguments);
+    } on Exception catch (e) {
+      log('[method:parserTextToBytes]: $e');
       throw Exception('Error: $e');
     }
     return results;
