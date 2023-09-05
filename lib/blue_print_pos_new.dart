@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:ui';
 
 import 'package:blue_print_pos/models/models.dart';
 import 'package:blue_print_pos/new/receipt/receipt.dart';
@@ -7,6 +8,7 @@ import 'package:esc_pos_utils_plus/esc_pos_utils.dart';
 import 'package:fluetooth/fluetooth.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
+import 'package:qr_flutter/qr_flutter.dart';
 
 export 'package:esc_pos_utils_plus/esc_pos_utils.dart' show PaperSize;
 export 'package:fluetooth/fluetooth.dart' show FluetoothDevice;
@@ -102,6 +104,7 @@ class BluePrintPos {
     int feedCount = 0,
     bool useCut = false,
     bool useRaster = false,
+    bool openDrawer = false,
     double duration = 0,
     PaperSize paperSize = PaperSize.mm58,
     double? textScaleFactor,
@@ -136,13 +139,21 @@ class BluePrintPos {
         paperSize: paperSize,
         feedCount: isEndOfBatch ? feedCount : batchOptions.feedCount,
         useCut: isEndOfBatch ? useCut : batchOptions.useCut,
+        openDrawer: openDrawer,
       );
 
       await _printProcess(byteBuffer);
     }
   }
 
-  Future<String?> convertImageToString(String image, {int? width}) async {
+  static int pixelToMM(int pixel) {
+    const double inchToMM = 25.4;
+    const double printerDPI = 203;
+    return (pixel * inchToMM / printerDPI).round();
+  }
+
+  static Future<String?> convertImageToString(String image,
+      {int? width}) async {
     final String? result = await getImageHexadecimal(
       content: image,
       width: width,
@@ -160,15 +171,18 @@ class BluePrintPos {
     int feedCount = 0,
     bool useCut = false,
     bool useRaster = false,
+    bool openDrawer = false,
+    bool isQR = false,
     PaperSize paperSize = PaperSize.mm58,
   }) async {
-    final List<int> byteBuffer = await _getBytes(
+    final List<int> byteBuffer = await _getBytesFromEscPos(
       bytes,
-      customWidth: width,
       feedCount: feedCount,
       useCut: useCut,
-      useRaster: useRaster,
+      customWidth: width,
       paperSize: paperSize,
+      openDrawer: openDrawer,
+      isQR: isQR,
     );
     await _printProcess(byteBuffer);
   }
@@ -182,14 +196,17 @@ class BluePrintPos {
     int size = 120,
     int feedCount = 0,
     bool useCut = false,
+    bool openDrawer = false,
   }) async {
-    final String content = "[C]<qrcode size='20'>$data</qrcode>";
-    final Uint8List? byteBuffer = await convertTextToBytes(content: content);
-    if (byteBuffer == null) {
-      return;
-    }
-
-    await _printProcess(byteBuffer);
+    final List<int> byteBuffer = await _getQRImage(data, size.toDouble());
+    await printReceiptImage(
+      byteBuffer,
+      width: size,
+      feedCount: feedCount,
+      useCut: useCut,
+      openDrawer: openDrawer,
+      isQR: true,
+    );
   }
 
   /// Reusable method for print text, image or QR based value [byteBuffer]
@@ -220,6 +237,7 @@ class BluePrintPos {
     int feedCount = 0,
     bool useCut = false,
     bool useRaster = false,
+    bool openDrawer = false,
   }) async {
     List<int> bytes = <int>[];
     final CapabilityProfile profile = await CapabilityProfile.load();
@@ -232,6 +250,9 @@ class BluePrintPos {
       _selectedDevice!.name,
       PrinterFeature.paperFullCut,
     );
+    if (openDrawer) {
+      bytes += generator.drawer();
+    }
     if (useRaster) {
       bytes += generator.imageRaster(_resize);
     } else {
@@ -254,18 +275,32 @@ class BluePrintPos {
   Future<List<int>> _getBytesFromEscPos(
     List<int> data, {
     PaperSize paperSize = PaperSize.mm58,
+    int customWidth = 0,
     int feedCount = 0,
     bool useCut = false,
+    bool openDrawer = false,
+    bool isQR = false,
   }) async {
     List<int> bytes = data;
     final CapabilityProfile profile = await CapabilityProfile.load();
     final Generator generator = Generator(paperSize, profile);
 
+    if (isQR) {
+      bytes = <int>[];
+      final img.Image _resize = img.copyResize(
+        img.decodeImage(data)!,
+        width: customWidth > 0 ? customWidth : paperSize.width,
+      );
+      bytes += generator.image(_resize);
+    }
+
     final bool canFullCut = printerHasFeatureOf(
       _selectedDevice!.name,
       PrinterFeature.paperFullCut,
     );
-
+    if (openDrawer) {
+      bytes += generator.drawer();
+    }
     if (feedCount > 0) {
       bytes += generator.feed(feedCount);
     }
@@ -273,6 +308,27 @@ class BluePrintPos {
       bytes += generator.cut();
     }
     return bytes;
+  }
+
+  /// Handler to generate QR image from [text] and set the [size].
+  /// Using painter and convert to [Image] object and return as [Uint8List]
+  Future<Uint8List> _getQRImage(String text, double size) async {
+    try {
+      final Image image = await QrPainter(
+        data: text,
+        version: QrVersions.auto,
+        gapless: false,
+        color: const Color(0xFF000000),
+        emptyColor: const Color(0xFFFFFFFF),
+      ).toImage(size);
+      final ByteData? byteData =
+          await image.toByteData(format: ImageByteFormat.png);
+      assert(byteData != null);
+      return byteData!.buffer.asUint8List();
+    } on Exception catch (exception) {
+      print('$runtimeType - $exception');
+      rethrow;
+    }
   }
 
   static Future<Uint8List?> convertTextToBytes({

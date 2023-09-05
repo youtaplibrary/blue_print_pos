@@ -12,7 +12,7 @@ import com.ayeee.blue_print_pos.exceptions.EscPosEncodingException;
 
 
 public class PrinterTextParserImg implements IPrinterTextParserElement {
-    
+
     /**
      * Convert Drawable instance to a hexadecimal string of the image data.
      *
@@ -40,7 +40,7 @@ public class PrinterTextParserImg implements IPrinterTextParserElement {
         }
         return "";
     }
-    
+
     /**
      * Convert BitmapDrawable instance to a hexadecimal string of the image data.
      *
@@ -63,7 +63,7 @@ public class PrinterTextParserImg implements IPrinterTextParserElement {
     public static String bitmapToHexadecimalString(EscPosPrinterSize printerSize, BitmapDrawable bitmapDrawable, boolean gradient) {
         return PrinterTextParserImg.bitmapToHexadecimalString(printerSize, bitmapDrawable.getBitmap(), gradient);
     }
-    
+
     /**
      * Convert Bitmap instance to a hexadecimal string of the image data.
      *
@@ -86,7 +86,7 @@ public class PrinterTextParserImg implements IPrinterTextParserElement {
     public static String bitmapToHexadecimalString(EscPosPrinterSize printerSize, Bitmap bitmap, boolean gradient) {
         return PrinterTextParserImg.bytesToHexadecimalString(printerSize.bitmapToBytes(bitmap, gradient));
     }
-    
+
     /**
      * Convert byte array to a hexadecimal string of the image data.
      *
@@ -104,7 +104,7 @@ public class PrinterTextParserImg implements IPrinterTextParserElement {
         }
         return imageHexString.toString();
     }
-    
+
     /**
      * Convert hexadecimal string of the image data to bytes ESC/POS command.
      *
@@ -119,11 +119,11 @@ public class PrinterTextParserImg implements IPrinterTextParserElement {
         }
         return bytes;
     }
-    
-    
+
+
     private final int length;
     private final byte[] image;
-    
+
     /**
      * Create new instance of PrinterTextParserImg.
      *

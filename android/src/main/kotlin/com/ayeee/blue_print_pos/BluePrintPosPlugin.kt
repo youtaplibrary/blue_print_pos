@@ -115,9 +115,9 @@ class BluePrintPosPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                             true
                         )
 
-                        PrinterTextParserImg.bitmapToHexadecimalString(printer,rescaleBitmap)
+                        PrinterTextParserImg.bitmapToHexadecimalString(printer!!,rescaleBitmap)
                     } else {
-                        PrinterTextParserImg.bitmapToHexadecimalString(printer, originalBitmap)
+                        PrinterTextParserImg.bitmapToHexadecimalString(printer!!, originalBitmap)
                     }
                     result.success(hexadecimal)
                 }

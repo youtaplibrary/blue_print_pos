@@ -1,5 +1,7 @@
 package com.ayeee.blue_print_pos.textparser;
 
+import android.util.Log;
+
 import com.ayeee.blue_print_pos.EscPosPrinter;
 import com.ayeee.blue_print_pos.EscPosPrinterCommands;
 import com.ayeee.blue_print_pos.exceptions.EscPosBarcodeException;
@@ -15,6 +17,8 @@ public class PrinterTextParserQRCode extends PrinterTextParserImg {
         data = data.trim();
 
         int size = printer.mmToPx(20f);
+
+        Log.i("qrCodeAttribute", qrCodeAttributes.toString());
 
         if (qrCodeAttributes.containsKey(PrinterTextParser.ATTR_QRCODE_SIZE)) {
             String qrCodeAttribute = qrCodeAttributes.get(PrinterTextParser.ATTR_QRCODE_SIZE);

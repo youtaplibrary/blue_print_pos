@@ -57,6 +57,8 @@ public class PrinterTextParser {
     public static final String ATTR_FORMAT_TEXT_FONT_COLOR_BG_RED = "bg-red";
 
     public static final String ATTR_QRCODE_SIZE = "size";
+
+    public static final String ATTR_IMAGE_SIZE = "size";
     
     private static String regexAlignTags;
     public static String getRegexAlignTags() {

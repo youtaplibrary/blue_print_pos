@@ -201,31 +201,34 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  Future<String?> convertImageToString(String path, {int? width}) async {
-    final ByteData logoByteData = await rootBundle.load(path);
-    final String imageBase64 = base64.encode(logoByteData.buffer.asUint8List());
-    final String? result = await _bluePrintPos.convertImageToString(
-      imageBase64,
-      width: width,
-    );
-    return result;
-  }
+  // Future<String?> convertImageToString(String path, {int? width}) async {
+  //   final ByteData logoByteData = await rootBundle.load(path);
+  //   final String imageBase64 = base64.encode(logoByteData.buffer.asUint8List());
+  //   final String? result = await BluePrintPos.convertImageToString(
+  //     imageBase64,
+  //     width: width,
+  //   );
+  //   return result;
+  // }
 
   Future<void> _onPrintReceipt() async {
-    final String? logoBase64 = await convertImageToString(
-      'assets/logo.jpg',
-      width: 150,
-    );
+    // final String? logoBase64 = await convertImageToString(
+    //   'assets/logo.jpg',
+    //   width: 150,
+    // );
     //
+
+    final ByteData logoBytes = await rootBundle.load(
+      'assets/logo.jpg',
+    );
+
     /// Example for Print Text
     final ReceiptSectionText receiptText = ReceiptSectionText();
-    //
-    if (logoBase64 != null) {
-      receiptText.addImage(
-        logoBase64,
-        width: 150,
-      );
-    }
+
+    receiptText.addImage(
+      base64.encode(Uint8List.view(logoBytes.buffer)),
+      width: 150,
+    );
 
     receiptText.addSpacer();
     receiptText.addText(

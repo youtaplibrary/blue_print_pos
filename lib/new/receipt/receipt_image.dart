@@ -1,5 +1,6 @@
+import 'package:blue_print_pos/blue_print_pos_new.dart';
+
 import 'collection_style.dart';
-import 'receipt.dart';
 
 class ReceiptImage {
   ReceiptImage(
@@ -12,7 +13,8 @@ class ReceiptImage {
   final int width;
   final ReceiptAlignment alignment;
 
-  String get html => '$_alignmentStyle<img>$data</img>\n';
+  String get html =>
+      _alignmentStyle + '<img ' + "size='$width'>" + data + '</img>\n';
 
   String get _alignmentStyle {
     if (alignment == ReceiptAlignment.left) {
