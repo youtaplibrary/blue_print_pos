@@ -173,17 +173,15 @@ class BluePrintPos {
     bool useCut = false,
     bool useRaster = false,
     bool openDrawer = false,
-    bool isQR = false,
     PaperSize paperSize = PaperSize.mm58,
   }) async {
-    final List<int> byteBuffer = await _getBytesFromEscPos(
+    final List<int> byteBuffer = await _getBytes(
       bytes,
       feedCount: feedCount,
       useCut: useCut,
       customWidth: width,
       paperSize: paperSize,
       openDrawer: openDrawer,
-      isQR: isQR,
     );
     await _printProcess(byteBuffer);
   }
@@ -206,7 +204,6 @@ class BluePrintPos {
       feedCount: feedCount,
       useCut: useCut,
       openDrawer: openDrawer,
-      isQR: true,
     );
   }
 
