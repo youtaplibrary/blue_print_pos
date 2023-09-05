@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:blue_print_pos/models/models.dart';
@@ -365,6 +366,41 @@ class BluePrintPos {
           'convertImageToHexadecimal', arguments);
     } on Exception catch (e) {
       log('[method:parserTextToBytes]: $e');
+      throw Exception('Error: $e');
+    }
+    return results;
+  }
+
+  /// Converts HTML content to bytes
+  ///
+  /// [content] the html text
+  ///
+  /// [duration] the delay duration before converting the html to bytes.
+  /// defaults to 0.
+  ///
+  /// [textScaleFactor] the text scale factor (must be > 0 or null).
+  /// note that this currently only works on Android.
+  /// defaults to system's font settings.
+  static Future<Uint8List> contentToImage({
+    required String content,
+    double duration = 0,
+    double? textScaleFactor,
+  }) async {
+    assert(
+      textScaleFactor == null || textScaleFactor > 0,
+      '`textScaleFactor` must be either null or more than zero.',
+    );
+    final Map<String, dynamic> arguments = <String, dynamic>{
+      'content': content,
+      'duration': Platform.isIOS ? 2000 : duration,
+      'textScaleFactor': textScaleFactor,
+    };
+    Uint8List results = Uint8List.fromList(<int>[]);
+    try {
+      results = await _channel.invokeMethod('contentToImage', arguments) ??
+          Uint8List.fromList(<int>[]);
+    } on Exception catch (e) {
+      log('[method:contentToImage]: $e');
       throw Exception('Error: $e');
     }
     return results;
