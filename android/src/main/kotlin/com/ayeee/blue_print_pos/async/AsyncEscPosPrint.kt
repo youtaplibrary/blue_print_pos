@@ -43,7 +43,7 @@ abstract class AsyncEscPosPrint @JvmOverloads constructor(
             publishProgress(PROGRESS_PRINTING)
             val textsToPrint: Array<String?> = printerData.textsToPrint
             for (textToPrint in textsToPrint) {
-                printer.printFormattedTextAndCut(textToPrint,3f)
+                printer.printFormattedTextAndCut(textToPrint,0f)
                 Thread.sleep(500)
             }
             publishProgress(PROGRESS_PRINTED)
