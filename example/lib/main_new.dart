@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:blue_print_pos/blue_print_pos.dart';
+import 'package:blue_print_pos/blue_print_pos_new.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -201,18 +201,35 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
+  // Future<String?> convertImageToString(String path, {int? width}) async {
+  //   final ByteData logoByteData = await rootBundle.load(path);
+  //   final String imageBase64 = base64.encode(logoByteData.buffer.asUint8List());
+  //   final String? result = await BluePrintPos.convertImageToString(
+  //     imageBase64,
+  //     width: width,
+  //   );
+  //   return result;
+  // }
+
   Future<void> _onPrintReceipt() async {
-    /// Example for Print Image
+    // final String? logoBase64 = await convertImageToString(
+    //   'assets/logo.jpg',
+    //   width: 150,
+    // );
+    //
+
     final ByteData logoBytes = await rootBundle.load(
       'assets/logo.jpg',
     );
 
     /// Example for Print Text
     final ReceiptSectionText receiptText = ReceiptSectionText();
+
     receiptText.addImage(
       base64.encode(Uint8List.view(logoBytes.buffer)),
       width: 150,
     );
+
     receiptText.addSpacer();
     receiptText.addText(
       'MY STORE',
@@ -255,8 +272,10 @@ class _MyAppState extends State<MyApp> {
 
     /// Text after QR
     final ReceiptSectionText receiptSecondText = ReceiptSectionText();
-    receiptSecondText.addText('Powered by ayeee',
-        size: ReceiptTextSizeType.small);
+    receiptSecondText.addText(
+      'Powered by ayeee',
+      size: ReceiptTextSizeType.small,
+    );
     receiptSecondText.addSpacer();
     await _bluePrintPos.printReceiptText(receiptSecondText, feedCount: 1);
   }
