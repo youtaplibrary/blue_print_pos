@@ -1,18 +1,17 @@
 import 'dart:developer';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:blue_print_pos/models/models.dart';
 import 'package:blue_print_pos/receipt/receipt_section_text.dart';
-import 'package:esc_pos_utils_plus/esc_pos_utils.dart';
+import 'package:esc_pos_utils/esc_pos_utils.dart' show CapabilityProfile, Generator, PaperSize;
 import 'package:fluetooth/fluetooth.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import 'package:qr_flutter/qr_flutter.dart';
 
-export 'package:esc_pos_utils_plus/esc_pos_utils.dart' show PaperSize;
 export 'package:fluetooth/fluetooth.dart' show FluetoothDevice;
+
 export 'models/models.dart';
 export 'receipt/receipt.dart';
 
@@ -78,8 +77,7 @@ class BluePrintPos {
     Duration timeout = const Duration(seconds: 5),
   }) async {
     try {
-      final FluetoothDevice fDevice =
-          await Fluetooth().connect(device.id).timeout(timeout);
+      final FluetoothDevice fDevice = await Fluetooth().connect(device.id).timeout(timeout);
       _selectedDevice = fDevice;
       _isConnected = true;
       return Future<ConnectionStatus>.value(ConnectionStatus.connected);
@@ -127,11 +125,9 @@ class BluePrintPos {
   }) async {
     final int contentLength = receiptSectionText.contentLength;
 
-    final BatchPrintOptions batchOptions =
-        batchPrintOptions ?? BatchPrintOptions.full;
+    final BatchPrintOptions batchOptions = batchPrintOptions ?? BatchPrintOptions.full;
 
-    final Iterable<List<Object>> startEndIter =
-        batchOptions.getStartEnd(contentLength);
+    final Iterable<List<Object>> startEndIter = batchOptions.getStartEnd(contentLength);
 
     for (final List<Object> startEnd in startEndIter) {
       final ReceiptSectionText section = receiptSectionText.getSection(
@@ -158,8 +154,7 @@ class BluePrintPos {
         name: 'BluePrintPos.printReceiptText',
       );
 
-      if (batchOptions.delay != Duration.zero &&
-          !batchOptions.delay.isNegative) {
+      if (batchOptions.delay != Duration.zero && !batchOptions.delay.isNegative) {
         await Future<void>.delayed(batchOptions.delay);
       }
     }
@@ -203,10 +198,7 @@ class BluePrintPos {
   }) async {
     final List<int> byteBuffer = await _getQRImage(data, size.toDouble());
     await printReceiptImage(byteBuffer,
-        width: size,
-        feedCount: feedCount,
-        useCut: useCut,
-        openDrawer: openDrawer);
+        width: size, feedCount: feedCount, useCut: useCut, openDrawer: openDrawer);
   }
 
   /// Reusable method for print text, image or QR based value [byteBuffer]
@@ -243,7 +235,7 @@ class BluePrintPos {
     final CapabilityProfile profile = await CapabilityProfile.load();
     final Generator generator = Generator(paperSize, profile);
     final img.Image _resize = img.copyResize(
-      img.decodeImage(data)!,
+      img.decodeImage(Uint8List.fromList(data))!,
       width: customWidth > 0 ? customWidth : paperSize.width,
     );
     final bool canFullCut = printerHasFeatureOf(
@@ -278,8 +270,7 @@ class BluePrintPos {
         color: const Color(0xFF000000),
         emptyColor: const Color(0xFFFFFFFF),
       ).toImage(size);
-      final ByteData? byteData =
-          await image.toByteData(format: ImageByteFormat.png);
+      final ByteData? byteData = await image.toByteData(format: ImageByteFormat.png);
       assert(byteData != null);
       return byteData!.buffer.asUint8List();
     } on Exception catch (exception) {
@@ -314,8 +305,8 @@ class BluePrintPos {
     };
     Uint8List results = Uint8List.fromList(<int>[]);
     try {
-      results = await _channel.invokeMethod('contentToImage', arguments) ??
-          Uint8List.fromList(<int>[]);
+      results =
+          await _channel.invokeMethod('contentToImage', arguments) ?? Uint8List.fromList(<int>[]);
     } on Exception catch (e) {
       log('[method:contentToImage]: $e');
       throw Exception('Error: $e');
