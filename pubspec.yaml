@@ -11,13 +11,16 @@ environment:
 
 dependencies:
   # Utilities for generate ByteBuffer
-  esc_pos_utils_plus: ^2.0.1+6
+  esc_pos_utils:
+    git:
+      ref: abe7b790e9a8d9bc8a6d90b25aac3e5e08d3ad09
+      url: https://github.com/andrey-ushakov/esc_pos_utils.git
   fluetooth: ^0.0.5
   # Framework
   flutter:
     sdk: flutter
   # Image utilities
-  image: ^3.1.3
+  image: 4.0.17
   # Generate qr image painter
   qr_flutter:
     git: https://github.com/theyakka/qr.flutter.git
