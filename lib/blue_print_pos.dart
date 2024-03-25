@@ -1,6 +1,5 @@
 import 'dart:developer';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:blue_print_pos/models/models.dart';
@@ -13,6 +12,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 export 'package:esc_pos_utils_plus/esc_pos_utils.dart' show PaperSize;
 export 'package:fluetooth/fluetooth.dart' show FluetoothDevice;
+
 export 'models/models.dart';
 export 'receipt/receipt.dart';
 
@@ -53,16 +53,19 @@ class BluePrintPos {
     return _printerFeatures.hasFeatureOf(printerName, feature);
   }
 
-  /// State to get bluetooth is connected
-  bool _isConnected = false;
+  // /// State to get bluetooth is connected
+  // bool _isConnected = false;
+  //
+  // /// Getter value [_isConnected]
+  // bool get isConnected => _isConnected;
+  //
+  // FluetoothDevice? _selectedDevice;
+  //
+  // /// Selected device after connecting
+  // FluetoothDevice? get selectedDevice => _selectedDevice;
 
-  /// Getter value [_isConnected]
-  bool get isConnected => _isConnected;
-
-  FluetoothDevice? _selectedDevice;
-
-  /// Selected device after connecting
-  FluetoothDevice? get selectedDevice => _selectedDevice;
+  /// List connected device
+  List<FluetoothDevice> connectedDevices = <FluetoothDevice>[];
 
   /// return bluetooth device list, handler Android and iOS in [BlueScanner]
   Future<List<FluetoothDevice>> scan() {
@@ -78,24 +81,23 @@ class BluePrintPos {
     Duration timeout = const Duration(seconds: 5),
   }) async {
     try {
-      final FluetoothDevice fDevice =
-          await Fluetooth().connect(device.id).timeout(timeout);
-      _selectedDevice = fDevice;
-      _isConnected = true;
+      await Fluetooth().connect(device.id).timeout(timeout);
+      await Fluetooth().connectedDevice.then((List<FluetoothDevice> devices) {
+        connectedDevices = devices;
+      });
       return Future<ConnectionStatus>.value(ConnectionStatus.connected);
     } on Exception catch (error) {
       log('$runtimeType - Error $error');
-      _isConnected = false;
-      _selectedDevice = null;
       return Future<ConnectionStatus>.value(ConnectionStatus.timeout);
     }
   }
 
   /// To stop communication between bluetooth device and application
-  Future<ConnectionStatus> disconnect() async {
-    await Fluetooth().disconnect();
-    _isConnected = false;
-    _selectedDevice = null;
+  Future<ConnectionStatus> disconnect(String uuid) async {
+    await Fluetooth().disconnectDevice(uuid);
+    await Fluetooth().connectedDevice.then((List<FluetoothDevice> devices) {
+      connectedDevices = devices;
+    });
     return ConnectionStatus.disconnect;
   }
 
@@ -115,7 +117,8 @@ class BluePrintPos {
   /// [batchPrintOptions] to print each [ReceiptSectionText]'s content in batch.
   /// defaults to [BatchPrintOptions.full].
   Future<void> printReceiptText(
-    ReceiptSectionText receiptSectionText, {
+    ReceiptSectionText receiptSectionText,
+    String uuid, {
     int feedCount = 0,
     bool useCut = false,
     bool useRaster = false,
@@ -152,7 +155,7 @@ class BluePrintPos {
         useRaster: useRaster,
         openDrawer: openDrawer,
       );
-      await _printProcess(byteBuffer);
+      await _printProcess(byteBuffer, uuid);
       log(
         'start: ${startEnd[0]} end: ${startEnd[1]}',
         name: 'BluePrintPos.printReceiptText',
@@ -170,7 +173,8 @@ class BluePrintPos {
   /// [feedCount] to create more space after printing process done
   /// [useCut] to cut printing process
   Future<void> printReceiptImage(
-    List<int> bytes, {
+    List<int> bytes,
+    String uuid, {
     int width = 120,
     int feedCount = 0,
     bool useCut = false,
@@ -187,7 +191,7 @@ class BluePrintPos {
       paperSize: paperSize,
       openDrawer: openDrawer,
     );
-    await _printProcess(byteBuffer);
+    await _printProcess(byteBuffer, uuid);
   }
 
   /// This method only for print QR, only pass value on parameter [data]
@@ -195,31 +199,33 @@ class BluePrintPos {
   /// [feedCount] to create more space after printing process done
   /// [useCut] to cut printing process
   Future<void> printQR(
-    String data, {
+    String data,
+    String uuid, {
     int size = 120,
     int feedCount = 0,
     bool useCut = false,
     bool openDrawer = false,
   }) async {
     final List<int> byteBuffer = await _getQRImage(data, size.toDouble());
-    await printReceiptImage(byteBuffer,
-        width: size,
-        feedCount: feedCount,
-        useCut: useCut,
-        openDrawer: openDrawer);
+    await printReceiptImage(
+      byteBuffer,
+      uuid,
+      width: size,
+      feedCount: feedCount,
+      useCut: useCut,
+      openDrawer: openDrawer,
+    );
   }
 
   /// Reusable method for print text, image or QR based value [byteBuffer]
   /// Handler Android or iOS will use method writeBytes from ByteBuffer
   /// But in iOS more complex handler using service and characteristic
-  Future<void> _printProcess(List<int> byteBuffer) async {
+  Future<void> _printProcess(List<int> byteBuffer, String uuid) async {
     try {
-      if (!await Fluetooth().isConnected) {
-        _isConnected = false;
-        _selectedDevice = null;
+      if (!await Fluetooth().isConnected(uuid)) {
         return;
       }
-      await Fluetooth().sendBytes(byteBuffer);
+      await Fluetooth().sendBytes(byteBuffer, uuid);
     } on Exception catch (error) {
       log('$runtimeType - Error $error');
     }
@@ -246,10 +252,6 @@ class BluePrintPos {
       img.decodeImage(data)!,
       width: customWidth > 0 ? customWidth : paperSize.width,
     );
-    final bool canFullCut = printerHasFeatureOf(
-      _selectedDevice!.name,
-      PrinterFeature.paperFullCut,
-    );
     if (openDrawer) {
       bytes += generator.drawer();
     }
@@ -261,7 +263,7 @@ class BluePrintPos {
     if (feedCount > 0) {
       bytes += generator.feed(feedCount);
     }
-    if (useCut && canFullCut) {
+    if (useCut) {
       bytes += generator.cut();
     }
     return bytes;

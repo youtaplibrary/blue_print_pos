@@ -1,6 +1,6 @@
 name: blue_print_pos
 description: Plugin to connecting bluetooth printer device, support on Android and iOS
-version: 0.1.4
+version: 0.2.0
 homepage: https://github.com/iandis/blue_print_pos
 
 publish_to: 'none'
@@ -12,7 +12,10 @@ environment:
 dependencies:
   # Utilities for generate ByteBuffer
   esc_pos_utils_plus: ^2.0.1+6
-  fluetooth: ^0.0.5
+  fluetooth:
+    git:
+      url: https://github.com/youtaplibrary/fluetooth.git
+      ref: 0.1.0
   # Framework
   flutter:
     sdk: flutter

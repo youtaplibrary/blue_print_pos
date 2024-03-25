@@ -1,9 +1,6 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:blue_print_pos/blue_print_pos.dart';
-import 'package:blue_print_pos/models/models.dart';
-import 'package:blue_print_pos/receipt/receipt.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -51,7 +48,8 @@ class _MyAppState extends State<MyApp> {
                                     child: GestureDetector(
                                       onTap: _blueDevices[index].id ==
                                               (_selectedDevice?.id ?? '')
-                                          ? _onDisconnectDevice
+                                          ? () => _onDisconnectDevice(
+                                              _selectedDevice?.id ?? '')
                                           : () => _onSelectDevice(index),
                                       child: Padding(
                                         padding: const EdgeInsets.all(8.0),
@@ -102,7 +100,8 @@ class _MyAppState extends State<MyApp> {
                                       _blueDevices[index].id ==
                                           (_selectedDevice?.id ?? ''))
                                     TextButton(
-                                      onPressed: _onPrintReceipt,
+                                      onPressed: () => _onPrintReceipt(
+                                          _selectedDevice?.id ?? ''),
                                       child: Container(
                                         color: _selectedDevice == null
                                             ? Colors.grey
@@ -176,8 +175,8 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  void _onDisconnectDevice() {
-    _bluePrintPos.disconnect().then((ConnectionStatus status) {
+  void _onDisconnectDevice(String uuid) {
+    _bluePrintPos.disconnect(uuid).then((ConnectionStatus status) {
       if (status == ConnectionStatus.disconnect) {
         setState(() {
           _selectedDevice = null;
@@ -196,7 +195,7 @@ class _MyAppState extends State<MyApp> {
       if (status == ConnectionStatus.connected) {
         setState(() => _selectedDevice = blueDevice);
       } else if (status == ConnectionStatus.timeout) {
-        _onDisconnectDevice();
+        _onDisconnectDevice(blueDevice.id);
       } else {
         print('$runtimeType - something wrong');
       }
@@ -204,7 +203,7 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  Future<void> _onPrintReceipt() async {
+  Future<void> _onPrintReceipt(String uuid) async {
     /// Example for Print Image
     final ByteData logoBytes = await rootBundle.load(
       'assets/logo.jpg',
@@ -251,16 +250,16 @@ class _MyAppState extends State<MyApp> {
     );
     receiptText.addSpacer(count: 2);
 
-    await _bluePrintPos.printReceiptText(receiptText);
+    await _bluePrintPos.printReceiptText(receiptText, uuid);
 
     /// Example for print QR
-    await _bluePrintPos.printQR('www.google.com', size: 250);
+    await _bluePrintPos.printQR('www.google.com', uuid, size: 250);
 
     /// Text after QR
     final ReceiptSectionText receiptSecondText = ReceiptSectionText();
     receiptSecondText.addText('Powered by ayeee',
         size: ReceiptTextSizeType.small);
     receiptSecondText.addSpacer();
-    await _bluePrintPos.printReceiptText(receiptSecondText, feedCount: 1);
+    await _bluePrintPos.printReceiptText(receiptSecondText, uuid, feedCount: 1);
   }
 }
