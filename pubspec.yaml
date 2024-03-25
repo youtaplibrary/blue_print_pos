@@ -12,7 +12,10 @@ environment:
 dependencies:
   # Utilities for generate ByteBuffer
   esc_pos_utils_plus: ^2.0.1+6
-  fluetooth: ^0.0.5
+  fluetooth:
+    git:
+      url: https://github.com/youtaplibrary/fluetooth.git
+      ref: 0.1.0
   # Framework
   flutter:
     sdk: flutter
