@@ -72,6 +72,10 @@ class BluePrintPos {
     return Fluetooth().getAvailableDevices();
   }
 
+  Future<List<FluetoothDevice>> getConnectedDevices() {
+    return Fluetooth().getConnectedDevice();
+  }
+
   /// When connecting, reassign value [selectedDevice] from parameter [device]
   /// and if connection time more than [timeout]
   /// will return [ConnectionStatus.timeout]
@@ -82,7 +86,9 @@ class BluePrintPos {
   }) async {
     try {
       await Fluetooth().connect(device.id).timeout(timeout);
-      await Fluetooth().connectedDevice.then((List<FluetoothDevice> devices) {
+      await Fluetooth()
+          .getConnectedDevice()
+          .then((List<FluetoothDevice> devices) {
         connectedDevices = devices;
       });
       return Future<ConnectionStatus>.value(ConnectionStatus.connected);
@@ -95,7 +101,9 @@ class BluePrintPos {
   /// To stop communication between bluetooth device and application
   Future<ConnectionStatus> disconnect(String uuid) async {
     await Fluetooth().disconnectDevice(uuid);
-    await Fluetooth().connectedDevice.then((List<FluetoothDevice> devices) {
+    await Fluetooth()
+        .getConnectedDevice()
+        .then((List<FluetoothDevice> devices) {
       connectedDevices = devices;
     });
     return ConnectionStatus.disconnect;
