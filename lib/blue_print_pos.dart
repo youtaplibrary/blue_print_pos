@@ -2,16 +2,17 @@ import 'dart:developer';
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:blue_print_pos/extensions/bluetooth_extension.dart';
 import 'package:blue_print_pos/models/models.dart';
 import 'package:blue_print_pos/receipt/receipt_section_text.dart';
 import 'package:esc_pos_utils_plus/esc_pos_utils.dart';
-import 'package:fluetooth/fluetooth.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:image/image.dart' as img;
 import 'package:qr_flutter/qr_flutter.dart';
 
 export 'package:esc_pos_utils_plus/esc_pos_utils.dart' show PaperSize;
-export 'package:fluetooth/fluetooth.dart' show FluetoothDevice;
+export 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 export 'models/models.dart';
 export 'receipt/receipt.dart';
@@ -24,6 +25,8 @@ class BluePrintPos {
   static const MethodChannel _channel = MethodChannel('blue_print_pos');
 
   static final PrinterFeatures _printerFeatures = PrinterFeatures();
+
+  static String get printerServiceId => '18f0';
 
   /// Register printer device name with its features.
   /// Example:
@@ -53,59 +56,60 @@ class BluePrintPos {
     return _printerFeatures.hasFeatureOf(printerName, feature);
   }
 
-  // /// State to get bluetooth is connected
-  // bool _isConnected = false;
-  //
-  // /// Getter value [_isConnected]
-  // bool get isConnected => _isConnected;
-  //
-  // FluetoothDevice? _selectedDevice;
-  //
-  // /// Selected device after connecting
-  // FluetoothDevice? get selectedDevice => _selectedDevice;
-
-  /// List connected device
-  List<FluetoothDevice> connectedDevices = <FluetoothDevice>[];
+  /// get connected device
+  List<BluetoothDevice> get connectedDevices =>
+      FlutterBluePlus.connectedDevices;
 
   /// return bluetooth device list, handler Android and iOS in [BlueScanner]
-  Future<List<FluetoothDevice>> scan() {
-    return Fluetooth().getAvailableDevices();
+  Future<List<BluetoothDevice>> scan() async {
+    await FlutterBluePlus.startScan(
+      withServices: <Guid>[Guid(printerServiceId)],
+      timeout: const Duration(seconds: 5),
+    );
+
+    await FlutterBluePlus.isScanning
+        .where((bool isScanning) => isScanning == false)
+        .first;
+
+    final List<BluetoothDevice> result = FlutterBluePlus.lastScanResults
+        .map((ScanResult element) => element.device)
+        .where((BluetoothDevice element) => element.platformName.isNotEmpty)
+        .toList();
+
+    return result;
   }
 
-  Future<List<FluetoothDevice>> getConnectedDevices() {
-    return Fluetooth().getConnectedDevice();
-  }
-
-  /// When connecting, reassign value [selectedDevice] from parameter [device]
-  /// and if connection time more than [timeout]
-  /// will return [ConnectionStatus.timeout]
-  /// When connection success, will return [ConnectionStatus.connected]
-  Future<ConnectionStatus> connect(
-    FluetoothDevice device, {
-    Duration timeout = const Duration(seconds: 5),
+  /// When connecting, [discoverServices] and [requestMtu]
+  Future<void> connect(
+    BluetoothDevice device, {
+    Duration timeout = const Duration(seconds: 10),
+    Function? onConnected,
+    Function? onDisconnected,
   }) async {
-    try {
-      await Fluetooth().connect(device.id).timeout(timeout);
-      await Fluetooth()
-          .getConnectedDevice()
-          .then((List<FluetoothDevice> devices) {
-        connectedDevices = devices;
-      });
-      return Future<ConnectionStatus>.value(ConnectionStatus.connected);
-    } on Exception catch (error) {
-      log('$runtimeType - Error $error');
-      return Future<ConnectionStatus>.value(ConnectionStatus.timeout);
-    }
+    await device.connect(autoConnect: true, mtu: null, timeout: timeout);
+    device.connectionState.listen((BluetoothConnectionState state) async {
+      if (state == BluetoothConnectionState.connected) {
+        await device.discoverServices();
+        await device.requestMtu(512);
+
+        if (onConnected != null) {
+          onConnected();
+        }
+      } else if (state == BluetoothConnectionState.disconnected) {
+        if (onDisconnected != null) {
+          onDisconnected();
+        }
+      }
+    });
   }
 
   /// To stop communication between bluetooth device and application
-  Future<ConnectionStatus> disconnect(String uuid) async {
-    await Fluetooth().disconnectDevice(uuid);
-    await Fluetooth()
-        .getConnectedDevice()
-        .then((List<FluetoothDevice> devices) {
-      connectedDevices = devices;
-    });
+  Future<ConnectionStatus> disconnect(BluetoothDevice device) async {
+    await device.disconnect();
+    await device.connectionState
+        .where((BluetoothConnectionState val) =>
+            val == BluetoothConnectionState.disconnected)
+        .first;
     return ConnectionStatus.disconnect;
   }
 
@@ -230,12 +234,41 @@ class BluePrintPos {
   /// But in iOS more complex handler using service and characteristic
   Future<void> _printProcess(List<int> byteBuffer, String uuid) async {
     try {
-      if (!await Fluetooth().isConnected(uuid)) {
+      final List<BluetoothDevice> devices = FlutterBluePlus.connectedDevices
+          .where((BluetoothDevice device) => device.remoteId.str == uuid)
+          .toList();
+
+      if (devices.isEmpty) {
         return;
       }
-      await Fluetooth().sendBytes(byteBuffer, uuid);
+
+      final BluetoothDevice device = devices.first;
+
+      final Iterable<BluetoothService> services = device.servicesList.where(
+          (BluetoothService element) =>
+              element.serviceUuid == Guid(printerServiceId));
+
+      if (services.isEmpty) {
+        return;
+      }
+
+      final BluetoothService service = services.first;
+
+      final Iterable<BluetoothCharacteristic> characteristics = service
+          .characteristics
+          .where((BluetoothCharacteristic c) => c.properties.write);
+
+      if (characteristics.isEmpty) {
+        return;
+      }
+
+      final BluetoothCharacteristic c = characteristics.first;
+
+      if (c.properties.write) {
+        c.splitWrite(byteBuffer);
+      }
     } on Exception catch (error) {
-      log('$runtimeType - Error $error');
+      log('$runtimeType PrintProcess - Error $error');
     }
   }
 
