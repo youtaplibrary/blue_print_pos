@@ -265,7 +265,7 @@ class BluePrintPos {
       final BluetoothCharacteristic c = characteristics.first;
 
       if (c.properties.write) {
-        c.splitWrite(byteBuffer);
+        await c.splitWrite(byteBuffer);
       }
     } on Exception catch (error) {
       log('$runtimeType PrintProcess - Error $error');
