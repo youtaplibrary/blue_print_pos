@@ -80,27 +80,17 @@ class BluePrintPos {
   }
 
   /// When connecting, [discoverServices] and [requestMtu]
-  Future<void> connect(
-    BluetoothDevice device, {
-    Duration timeout = const Duration(seconds: 10),
-    Function? onConnected,
-    Function? onDisconnected,
-  }) async {
+  Future<ConnectionStatus> connect(
+      BluetoothDevice device, {
+        Duration timeout = const Duration(seconds: 10),
+      }) async {
     await device.connect(autoConnect: true, mtu: null, timeout: timeout);
-    device.connectionState.listen((BluetoothConnectionState state) async {
-      if (state == BluetoothConnectionState.connected) {
-        await device.discoverServices();
-        await device.requestMtu(512);
-
-        if (onConnected != null) {
-          onConnected();
-        }
-      } else if (state == BluetoothConnectionState.disconnected) {
-        if (onDisconnected != null) {
-          onDisconnected();
-        }
-      }
-    });
+    await device.connectionState
+        .where((val) => val == BluetoothConnectionState.connected)
+        .first;
+    if (Platform.isAndroid) await device.requestMtu(512);
+    await device.discoverServices();
+    return ConnectionStatus.connected;
   }
 
   /// To stop communication between bluetooth device and application
@@ -108,7 +98,7 @@ class BluePrintPos {
     await device.disconnect();
     await device.connectionState
         .where((BluetoothConnectionState val) =>
-            val == BluetoothConnectionState.disconnected)
+    val == BluetoothConnectionState.disconnected)
         .first;
     return ConnectionStatus.disconnect;
   }
@@ -129,24 +119,24 @@ class BluePrintPos {
   /// [batchPrintOptions] to print each [ReceiptSectionText]'s content in batch.
   /// defaults to [BatchPrintOptions.full].
   Future<void> printReceiptText(
-    ReceiptSectionText receiptSectionText,
-    String uuid, {
-    int feedCount = 0,
-    bool useCut = false,
-    bool useRaster = false,
-    bool openDrawer = false,
-    double duration = 0,
-    PaperSize paperSize = PaperSize.mm58,
-    double? textScaleFactor,
-    BatchPrintOptions? batchPrintOptions,
-  }) async {
+      ReceiptSectionText receiptSectionText,
+      String uuid, {
+        int feedCount = 0,
+        bool useCut = false,
+        bool useRaster = false,
+        bool openDrawer = false,
+        double duration = 0,
+        PaperSize paperSize = PaperSize.mm58,
+        double? textScaleFactor,
+        BatchPrintOptions? batchPrintOptions,
+      }) async {
     final int contentLength = receiptSectionText.contentLength;
 
     final BatchPrintOptions batchOptions =
         batchPrintOptions ?? BatchPrintOptions.full;
 
     final Iterable<List<Object>> startEndIter =
-        batchOptions.getStartEnd(contentLength);
+    batchOptions.getStartEnd(contentLength);
 
     for (final List<Object> startEnd in startEndIter) {
       final ReceiptSectionText section = receiptSectionText.getSection(
@@ -185,15 +175,15 @@ class BluePrintPos {
   /// [feedCount] to create more space after printing process done
   /// [useCut] to cut printing process
   Future<void> printReceiptImage(
-    List<int> bytes,
-    String uuid, {
-    int width = 120,
-    int feedCount = 0,
-    bool useCut = false,
-    bool useRaster = false,
-    bool openDrawer = false,
-    PaperSize paperSize = PaperSize.mm58,
-  }) async {
+      List<int> bytes,
+      String uuid, {
+        int width = 120,
+        int feedCount = 0,
+        bool useCut = false,
+        bool useRaster = false,
+        bool openDrawer = false,
+        PaperSize paperSize = PaperSize.mm58,
+      }) async {
     final List<int> byteBuffer = await _getBytes(
       bytes,
       customWidth: width,
@@ -211,13 +201,13 @@ class BluePrintPos {
   /// [feedCount] to create more space after printing process done
   /// [useCut] to cut printing process
   Future<void> printQR(
-    String data,
-    String uuid, {
-    int size = 120,
-    int feedCount = 0,
-    bool useCut = false,
-    bool openDrawer = false,
-  }) async {
+      String data,
+      String uuid, {
+        int size = 120,
+        int feedCount = 0,
+        bool useCut = false,
+        bool openDrawer = false,
+      }) async {
     final List<int> byteBuffer = await _getQRImage(data, size.toDouble());
     await printReceiptImage(
       byteBuffer,
@@ -245,8 +235,8 @@ class BluePrintPos {
       final BluetoothDevice device = devices.first;
 
       final Iterable<BluetoothService> services = device.servicesList.where(
-          (BluetoothService element) =>
-              element.serviceUuid == Guid(printerServiceId));
+              (BluetoothService element) =>
+          element.serviceUuid == Guid(printerServiceId));
 
       if (services.isEmpty) {
         return;
@@ -278,14 +268,14 @@ class BluePrintPos {
   /// [feedCount] to generate byte buffer as feed in receipt.
   /// [useCut] to cut of receipt layout as byte buffer.
   Future<List<int>> _getBytes(
-    List<int> data, {
-    PaperSize paperSize = PaperSize.mm58,
-    int customWidth = 0,
-    int feedCount = 0,
-    bool useCut = false,
-    bool useRaster = false,
-    bool openDrawer = false,
-  }) async {
+      List<int> data, {
+        PaperSize paperSize = PaperSize.mm58,
+        int customWidth = 0,
+        int feedCount = 0,
+        bool useCut = false,
+        bool useRaster = false,
+        bool openDrawer = false,
+      }) async {
     List<int> bytes = <int>[];
     final CapabilityProfile profile = await CapabilityProfile.load();
     final Generator generator = Generator(paperSize, profile);
@@ -322,7 +312,7 @@ class BluePrintPos {
         emptyColor: const Color(0xFFFFFFFF),
       ).toImage(size);
       final ByteData? byteData =
-          await image.toByteData(format: ImageByteFormat.png);
+      await image.toByteData(format: ImageByteFormat.png);
       assert(byteData != null);
       return byteData!.buffer.asUint8List();
     } on Exception catch (exception) {
@@ -347,8 +337,8 @@ class BluePrintPos {
     double? textScaleFactor,
   }) async {
     assert(
-      textScaleFactor == null || textScaleFactor > 0,
-      '`textScaleFactor` must be either null or more than zero.',
+    textScaleFactor == null || textScaleFactor > 0,
+    '`textScaleFactor` must be either null or more than zero.',
     );
     final Map<String, dynamic> arguments = <String, dynamic>{
       'content': content,

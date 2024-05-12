@@ -21,6 +21,25 @@ class _MyAppState extends State<MyApp> {
   int _loadingAtIndex = -1;
 
   @override
+  void initState() {
+    super.initState();
+
+    FlutterBluePlus.events.onConnectionStateChanged
+        .listen((OnConnectionStateChangedEvent event) {
+      if (event.connectionState == BluetoothConnectionState.connected) {
+        if (mounted) {
+          setState(() => _selectedDevice = event.device);
+        }
+      } else if (event.connectionState ==
+          BluetoothConnectionState.disconnected) {
+        if (mounted) {
+          setState(() => _selectedDevice = null);
+        }
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
@@ -196,11 +215,7 @@ class _MyAppState extends State<MyApp> {
       _loadingAtIndex = index;
     });
     final BluetoothDevice blueDevice = _blueDevices[index];
-    _bluePrintPos.connect(blueDevice, onConnected: () {
-      setState(() => _selectedDevice = blueDevice);
-    }, onDisconnected: () {
-      setState(() => _selectedDevice = null);
-    });
+    _bluePrintPos.connect(blueDevice);
     setState(() => _isLoading = false);
   }
 
