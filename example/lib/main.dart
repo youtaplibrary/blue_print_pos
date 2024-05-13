@@ -15,10 +15,29 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   final BluePrintPos _bluePrintPos = BluePrintPos.instance;
-  List<FluetoothDevice> _blueDevices = <FluetoothDevice>[];
-  FluetoothDevice? _selectedDevice;
+  List<BluetoothDevice> _blueDevices = <BluetoothDevice>[];
+  BluetoothDevice? _selectedDevice;
   bool _isLoading = false;
   int _loadingAtIndex = -1;
+
+  @override
+  void initState() {
+    super.initState();
+
+    FlutterBluePlus.events.onConnectionStateChanged
+        .listen((OnConnectionStateChangedEvent event) {
+      if (event.connectionState == BluetoothConnectionState.connected) {
+        if (mounted) {
+          setState(() => _selectedDevice = event.device);
+        }
+      } else if (event.connectionState ==
+          BluetoothConnectionState.disconnected) {
+        if (mounted) {
+          setState(() => _selectedDevice = null);
+        }
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,10 +65,11 @@ class _MyAppState extends State<MyApp> {
                                 children: <Widget>[
                                   Expanded(
                                     child: GestureDetector(
-                                      onTap: _blueDevices[index].id ==
-                                              (_selectedDevice?.id ?? '')
+                                      onTap: _blueDevices[index].remoteId.str ==
+                                              (_selectedDevice?.remoteId.str ??
+                                                  '')
                                           ? () => _onDisconnectDevice(
-                                              _selectedDevice?.id ?? '')
+                                              _selectedDevice!)
                                           : () => _onSelectDevice(index),
                                       child: Padding(
                                         padding: const EdgeInsets.all(8.0),
@@ -58,23 +78,27 @@ class _MyAppState extends State<MyApp> {
                                               CrossAxisAlignment.start,
                                           children: <Widget>[
                                             Text(
-                                              _blueDevices[index].name,
+                                              _blueDevices[index].platformName,
                                               style: TextStyle(
-                                                color: _selectedDevice?.id ==
-                                                        _blueDevices[index].id
-                                                    ? Colors.blue
-                                                    : Colors.black,
+                                                color:
+                                                    _selectedDevice?.remoteId ==
+                                                            _blueDevices[index]
+                                                                .remoteId
+                                                        ? Colors.blue
+                                                        : Colors.black,
                                                 fontSize: 20,
                                                 fontWeight: FontWeight.w500,
                                               ),
                                             ),
                                             Text(
-                                              _blueDevices[index].id,
+                                              _blueDevices[index].remoteId.str,
                                               style: TextStyle(
-                                                color: _selectedDevice?.id ==
-                                                        _blueDevices[index].id
-                                                    ? Colors.blueGrey
-                                                    : Colors.grey,
+                                                color:
+                                                    _selectedDevice?.remoteId ==
+                                                            _blueDevices[index]
+                                                                .remoteId
+                                                        ? Colors.blueGrey
+                                                        : Colors.grey,
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.w500,
                                               ),
@@ -97,11 +121,11 @@ class _MyAppState extends State<MyApp> {
                                       ),
                                     ),
                                   if (!_isLoading &&
-                                      _blueDevices[index].id ==
-                                          (_selectedDevice?.id ?? ''))
+                                      _blueDevices[index].remoteId ==
+                                          (_selectedDevice?.remoteId ?? ''))
                                     TextButton(
                                       onPressed: () => _onPrintReceipt(
-                                          _selectedDevice?.id ?? ''),
+                                          _selectedDevice?.remoteId.str ?? ''),
                                       child: Container(
                                         color: _selectedDevice == null
                                             ? Colors.grey
@@ -163,7 +187,7 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _onScanPressed() async {
     setState(() => _isLoading = true);
-    _bluePrintPos.scan().then((List<FluetoothDevice> devices) {
+    _bluePrintPos.scan().then((List<BluetoothDevice> devices) {
       if (devices.isNotEmpty) {
         setState(() {
           _blueDevices = devices;
@@ -175,8 +199,8 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  void _onDisconnectDevice(String uuid) {
-    _bluePrintPos.disconnect(uuid).then((ConnectionStatus status) {
+  void _onDisconnectDevice(BluetoothDevice device) {
+    _bluePrintPos.disconnect(device).then((ConnectionStatus status) {
       if (status == ConnectionStatus.disconnect) {
         setState(() {
           _selectedDevice = null;
@@ -190,17 +214,9 @@ class _MyAppState extends State<MyApp> {
       _isLoading = true;
       _loadingAtIndex = index;
     });
-    final FluetoothDevice blueDevice = _blueDevices[index];
-    _bluePrintPos.connect(blueDevice).then((ConnectionStatus status) {
-      if (status == ConnectionStatus.connected) {
-        setState(() => _selectedDevice = blueDevice);
-      } else if (status == ConnectionStatus.timeout) {
-        _onDisconnectDevice(blueDevice.id);
-      } else {
-        print('$runtimeType - something wrong');
-      }
-      setState(() => _isLoading = false);
-    });
+    final BluetoothDevice blueDevice = _blueDevices[index];
+    _bluePrintPos.connect(blueDevice);
+    setState(() => _isLoading = false);
   }
 
   Future<void> _onPrintReceipt(String uuid) async {
