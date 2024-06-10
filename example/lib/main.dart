@@ -21,11 +21,6 @@ class _MyAppState extends State<MyApp> {
   int _loadingAtIndex = -1;
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
@@ -54,7 +49,7 @@ class _MyAppState extends State<MyApp> {
                                       onTap: _blueDevices[index].id ==
                                               (_selectedDevice?.id ?? '')
                                           ? () => _onDisconnectDevice(
-                                              _selectedDevice!)
+                                              _selectedDevice?.id ?? '')
                                           : () => _onSelectDevice(index),
                                       child: Padding(
                                         padding: const EdgeInsets.all(8.0),
@@ -180,8 +175,8 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  void _onDisconnectDevice(FluetoothDevice device) {
-    _bluePrintPos.disconnect(device).then((ConnectionStatus status) {
+  void _onDisconnectDevice(String uuid) {
+    _bluePrintPos.disconnect(uuid).then((ConnectionStatus status) {
       if (status == ConnectionStatus.disconnect) {
         setState(() {
           _selectedDevice = null;
@@ -196,8 +191,16 @@ class _MyAppState extends State<MyApp> {
       _loadingAtIndex = index;
     });
     final FluetoothDevice blueDevice = _blueDevices[index];
-    _bluePrintPos.connect(blueDevice);
-    setState(() => _isLoading = false);
+    _bluePrintPos.connect(blueDevice).then((ConnectionStatus status) {
+      if (status == ConnectionStatus.connected) {
+        setState(() => _selectedDevice = blueDevice);
+      } else if (status == ConnectionStatus.timeout) {
+        _onDisconnectDevice(blueDevice.id);
+      } else {
+        print('$runtimeType - something wrong');
+      }
+      setState(() => _isLoading = false);
+    });
   }
 
   Future<void> _onPrintReceipt(String uuid) async {

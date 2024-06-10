@@ -11,7 +11,7 @@ import 'package:image/image.dart' as img;
 import 'package:qr_flutter/qr_flutter.dart';
 
 export 'package:esc_pos_utils_plus/esc_pos_utils.dart' show PaperSize;
-export 'package:fluetooth/fluetooth.dart';
+export 'package:fluetooth/fluetooth.dart' show FluetoothDevice;
 
 export 'models/models.dart';
 export 'receipt/receipt.dart';
@@ -24,8 +24,6 @@ class BluePrintPos {
   static const MethodChannel _channel = MethodChannel('blue_print_pos');
 
   static final PrinterFeatures _printerFeatures = PrinterFeatures();
-
-  static String get printerServiceId => '18f0';
 
   /// Register printer device name with its features.
   /// Example:
@@ -55,36 +53,60 @@ class BluePrintPos {
     return _printerFeatures.hasFeatureOf(printerName, feature);
   }
 
-  /// get connected device
-  Future<List<FluetoothDevice>> get connectedDevices =>
-      Fluetooth().getConnectedDevice();
+  // /// State to get bluetooth is connected
+  // bool _isConnected = false;
+  //
+  // /// Getter value [_isConnected]
+  // bool get isConnected => _isConnected;
+  //
+  // FluetoothDevice? _selectedDevice;
+  //
+  // /// Selected device after connecting
+  // FluetoothDevice? get selectedDevice => _selectedDevice;
+
+  /// List connected device
+  List<FluetoothDevice> connectedDevices = <FluetoothDevice>[];
 
   /// return bluetooth device list, handler Android and iOS in [BlueScanner]
-  Future<List<FluetoothDevice>> scan() async {
-    final List<FluetoothDevice> devices =
-        await Fluetooth().getAvailableDevices();
-    return devices;
+  Future<List<FluetoothDevice>> scan() {
+    return Fluetooth().getAvailableDevices();
   }
 
-  /// When connecting, [discoverServices] and [requestMtu]
+  Future<List<FluetoothDevice>> getConnectedDevices() {
+    return Fluetooth().getConnectedDevice();
+  }
+
+  /// When connecting, reassign value [selectedDevice] from parameter [device]
+  /// and if connection time more than [timeout]
+  /// will return [ConnectionStatus.timeout]
+  /// When connection success, will return [ConnectionStatus.connected]
   Future<ConnectionStatus> connect(
     FluetoothDevice device, {
-    Duration timeout = const Duration(seconds: 10),
+    Duration timeout = const Duration(seconds: 5),
   }) async {
-    await Fluetooth().connect(device.id).timeout(timeout);
-    final bool isConnected = await Fluetooth().isConnected(device.id);
-    return isConnected
-        ? ConnectionStatus.connected
-        : ConnectionStatus.disconnect;
+    try {
+      await Fluetooth().connect(device.id).timeout(timeout);
+      await Fluetooth()
+          .getConnectedDevice()
+          .then((List<FluetoothDevice> devices) {
+        connectedDevices = devices;
+      });
+      return Future<ConnectionStatus>.value(ConnectionStatus.connected);
+    } on Exception catch (error) {
+      log('$runtimeType - Error $error');
+      return Future<ConnectionStatus>.value(ConnectionStatus.timeout);
+    }
   }
 
   /// To stop communication between bluetooth device and application
-  Future<ConnectionStatus> disconnect(FluetoothDevice device) async {
-    await Fluetooth().disconnectDevice(device.id);
-    final bool isConnected = await Fluetooth().isConnected(device.id);
-    return isConnected
-        ? ConnectionStatus.connected
-        : ConnectionStatus.disconnect;
+  Future<ConnectionStatus> disconnect(String uuid) async {
+    await Fluetooth().disconnectDevice(uuid);
+    await Fluetooth()
+        .getConnectedDevice()
+        .then((List<FluetoothDevice> devices) {
+      connectedDevices = devices;
+    });
+    return ConnectionStatus.disconnect;
   }
 
   /// This method only for print text
@@ -203,24 +225,17 @@ class BluePrintPos {
     );
   }
 
+  /// Reusable method for print text, image or QR based value [byteBuffer]
+  /// Handler Android or iOS will use method writeBytes from ByteBuffer
+  /// But in iOS more complex handler using service and characteristic
   Future<void> _printProcess(List<int> byteBuffer, String uuid) async {
     try {
-      final List<FluetoothDevice> connectedDevices =
-          await Fluetooth().getConnectedDevice();
-
-      final List<FluetoothDevice> devices = connectedDevices
-          .where((FluetoothDevice device) => device.id == uuid)
-          .toList();
-
-      if (devices.isEmpty) {
+      if (!await Fluetooth().isConnected(uuid)) {
         return;
       }
-
-      final FluetoothDevice device = devices.first;
-
-      await Fluetooth().sendBytes(byteBuffer, device.id);
+      await Fluetooth().sendBytes(byteBuffer, uuid);
     } on Exception catch (error) {
-      log('$runtimeType PrintProcess - Error $error');
+      log('$runtimeType - Error $error');
     }
   }
 
