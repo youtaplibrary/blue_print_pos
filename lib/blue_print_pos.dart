@@ -203,48 +203,6 @@ class BluePrintPos {
     );
   }
 
-  /// Reusable method for print text, image or QR based value [byteBuffer]
-  /// Handler Android or iOS will use method writeBytes from ByteBuffer
-  /// But in iOS more complex handler using service and characteristic
-  // Future<void> _printProcess(List<int> byteBuffer, String uuid) async {
-  //   try {
-  //     final List<BluetoothDevice> devices = FlutterBluePlus.connectedDevices
-  //         .where((BluetoothDevice device) => device.remoteId.str == uuid)
-  //         .toList();
-  //
-  //     if (devices.isEmpty) {
-  //       return;
-  //     }
-  //
-  //     final BluetoothDevice device = devices.first;
-  //
-  //     final Iterable<BluetoothService> services = device.servicesList.where(
-  //         (BluetoothService element) =>
-  //             element.serviceUuid == Guid(printerServiceId));
-  //
-  //     if (services.isEmpty) {
-  //       return;
-  //     }
-  //
-  //     final BluetoothService service = services.first;
-  //
-  //     final Iterable<BluetoothCharacteristic> characteristics = service
-  //         .characteristics
-  //         .where((BluetoothCharacteristic c) => c.properties.write);
-  //
-  //     if (characteristics.isEmpty) {
-  //       return;
-  //     }
-  //
-  //     final BluetoothCharacteristic c = characteristics.first;
-  //
-  //     if (c.properties.write) {
-  //       await c.splitWrite(byteBuffer);
-  //     }
-  //   } on Exception catch (error) {
-  //     log('$runtimeType PrintProcess - Error $error');
-  //   }
-  // }
   Future<void> _printProcess(List<int> byteBuffer, String uuid) async {
     try {
       final List<FluetoothDevice> connectedDevices =

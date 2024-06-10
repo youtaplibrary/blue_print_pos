@@ -12,6 +12,10 @@ environment:
 dependencies:
   # Utilities for generate ByteBuffer
   esc_pos_utils_plus: ^2.0.1+6
+  fluetooth:
+    git:
+      url: https://github.com/youtaplibrary/fluetooth.git
+      ref: 0.1.2
   # Framework
   flutter:
     sdk: flutter
@@ -20,10 +24,6 @@ dependencies:
   # Generate qr image painter
   qr_flutter:
     git: https://github.com/theyakka/qr.flutter.git
-  fluetooth:
-    git:
-      url: https://github.com/youtaplibrary/fluetooth.git
-      ref: fix/disconnect_printer_if_in_connected_device
 
 dev_dependencies:
   flutter_test:
