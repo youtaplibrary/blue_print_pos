@@ -4,13 +4,12 @@ import 'dart:ui';
 
 import 'package:blue_print_pos/models/models.dart';
 import 'package:blue_print_pos/receipt/receipt_section_text.dart';
-import 'package:esc_pos_utils_plus/esc_pos_utils.dart';
+import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import 'package:fluetooth/fluetooth.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import 'package:qr_flutter/qr_flutter.dart';
 
-export 'package:esc_pos_utils_plus/esc_pos_utils.dart' show PaperSize;
 export 'package:fluetooth/fluetooth.dart' show FluetoothDevice;
 
 export 'models/models.dart';
@@ -257,7 +256,7 @@ class BluePrintPos {
     final CapabilityProfile profile = await CapabilityProfile.load();
     final Generator generator = Generator(paperSize, profile);
     final img.Image _resize = img.copyResize(
-      img.decodeImage(data)!,
+      img.decodeImage(Uint8List.fromList(data))!,
       width: customWidth > 0 ? customWidth : paperSize.width,
     );
     if (openDrawer) {
