@@ -5,12 +5,12 @@ import 'dart:ui';
 import 'package:blue_print_pos/models/models.dart';
 import 'package:blue_print_pos/receipt/receipt_section_text.dart';
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
-import 'package:fluetooth/fluetooth.dart';
+import 'package:fluetooth_plus/fluetooth.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import 'package:qr_flutter/qr_flutter.dart';
 
-export 'package:fluetooth/fluetooth.dart' show FluetoothDevice;
+export 'package:fluetooth_plus/fluetooth.dart' show FluetoothDevice;
 
 export 'models/models.dart';
 export 'receipt/receipt.dart';
